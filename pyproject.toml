@@ -1,0 +1,44 @@
+[project]
+name = "lumina"
+version = "0.1.0"
+description = "Lumina · Sprint 1: arquitectura MVC, acceso por roles y gestión de usuarios (aplicación de escritorio con NiceGUI)."
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [
+    { name = "Alejandro Majado Martínez" },
+    { name = "Laura Poveda Nicolás" },
+    { name = "Víctor Rodríguez Ortiz" },
+    { name = "Ignacio Torres Priego" },
+]
+dependencies = ["nicegui[native]>=3.18,<4"]
+
+[project.optional-dependencies]
+dev = [
+    "mypy>=1.13", "pytest>=8", "pytest-asyncio>=0.24", "ruff>=0.8", "jsonschema>=4.23", "types-jsonschema",
+    "pyinstaller>=6.10", "pillow>=10.1",
+]
+
+[tool.mypy]
+python_version = "3.11"
+strict = true
+warn_unreachable = true
+files = ["main.py", "lumina", "scripts", "tests"]
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+main_file = "main.py"
+pythonpath = ["."]
+testpaths = ["tests"]
+addopts = "-p nicegui.testing.user_plugin"
+
+[tool.ruff]
+line-length = 120
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP", "B", "SIM", "RUF"]
+ignore = ["RUF001", "RUF002", "RUF003"]
+
+[tool.ruff.format]
+quote-style = "single"

@@ -1,0 +1,26 @@
+{
+  "alertas": [
+    {
+      "id": "alr-0002",
+      "tipo": "movimiento_zona_restringida",
+      "zona": "almacen",
+      "fecha_hora": "2026-10-14T14:25:00",
+      "estado": "pendiente",
+      "descripcion": "Movimiento en el almacén",
+      "sensor": "mov-almacen",
+      "atendida_por": null,
+      "actualizada_en": null
+    },
+    {
+      "id": "alr-0001",
+      "tipo": "movimiento_zona_restringida",
+      "zona": "salida-emergencia",
+      "fecha_hora": "2026-10-13T21:47:00",
+      "estado": "resuelta",
+      "descripcion": "Movimiento en la salida de emergencia",
+      "sensor": "mov-salida-emergencia",
+      "atendida_por": "Carlos Ruiz",
+      "actualizada_en": "2026-10-13T21:52:00"
+    }
+  ]
+}

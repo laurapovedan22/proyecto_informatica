@@ -1,0 +1,101 @@
+{
+  "sensores": [
+    {
+      "id": "temp-tienda",
+      "nombre": "Temperatura · Tienda",
+      "tipo": "temperatura",
+      "zona": "tienda",
+      "valor": 23.6,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "hum-tienda",
+      "nombre": "Humedad · Tienda",
+      "tipo": "humedad",
+      "zona": "tienda",
+      "valor": 48,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "temp-almacen",
+      "nombre": "Temperatura · Almacén",
+      "tipo": "temperatura",
+      "zona": "almacen",
+      "valor": 19.8,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "aforo-tienda",
+      "nombre": "Contador de aforo · Entrada",
+      "tipo": "contador_personas",
+      "zona": "tienda",
+      "valor": 86,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "vehiculos-parking",
+      "nombre": "Contador de vehículos · Parking",
+      "tipo": "contador_vehiculos",
+      "zona": "parking",
+      "valor": 32,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "dist-acceso-parking",
+      "nombre": "Distancia · Acceso parking",
+      "tipo": "distancia",
+      "zona": "parking",
+      "valor": 182,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "mov-almacen",
+      "nombre": "Movimiento · Almacén",
+      "tipo": "movimiento",
+      "zona": "almacen",
+      "valor": true,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:25:00"
+    },
+    {
+      "id": "mov-salida-emergencia",
+      "nombre": "Movimiento · Salida de emergencia",
+      "tipo": "movimiento",
+      "zona": "salida-emergencia",
+      "valor": false,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    },
+    {
+      "id": "mov-puerta-personal",
+      "nombre": "Movimiento · Puerta de personal",
+      "tipo": "movimiento",
+      "zona": "puerta-personal",
+      "valor": false,
+      "estado": "activo",
+      "actualizado_en": "2026-10-14T14:30:00"
+    }
+  ],
+  "camaras": [
+    {
+      "id": "cam-almacen",
+      "nombre": "Cámara 1 · Almacén",
+      "zona": "almacen",
+      "url": null,
+      "estado": "activo"
+    },
+    {
+      "id": "cam-parking",
+      "nombre": "Cámara 2 · Parking",
+      "zona": "parking",
+      "url": null,
+      "estado": "activo"
+    }
+  ]
+}

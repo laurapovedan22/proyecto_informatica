@@ -1,0 +1,292 @@
+{
+  "lecturas": [
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T09:00:00",
+      "valor": 24,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T10:00:00",
+      "valor": 48,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T11:00:00",
+      "valor": 98,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T12:00:00",
+      "valor": 80,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T13:00:00",
+      "valor": 65,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-13T14:00:00",
+      "valor": 76,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T09:00:00",
+      "valor": 10,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T10:00:00",
+      "valor": 18,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T11:00:00",
+      "valor": 38,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T12:00:00",
+      "valor": 30,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T13:00:00",
+      "valor": 24,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-13T14:00:00",
+      "valor": 27,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T09:00:00",
+      "valor": 20.8,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T10:00:00",
+      "valor": 21,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T11:00:00",
+      "valor": 21.5,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T12:00:00",
+      "valor": 22.4,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T13:00:00",
+      "valor": 23.2,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-13T14:00:00",
+      "valor": 22.9,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T09:00:00",
+      "valor": 45,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T10:00:00",
+      "valor": 46,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T11:00:00",
+      "valor": 47,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T12:00:00",
+      "valor": 48,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T13:00:00",
+      "valor": 48,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-13T14:00:00",
+      "valor": 47,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T09:00:00",
+      "valor": 30,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T10:00:00",
+      "valor": 54,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T11:00:00",
+      "valor": 110,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T12:00:00",
+      "valor": 94,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T13:00:00",
+      "valor": 72,
+      "estado": "activo"
+    },
+    {
+      "variable": "aforo",
+      "fecha_hora": "2026-10-14T14:00:00",
+      "valor": 86,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T09:00:00",
+      "valor": 12,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T10:00:00",
+      "valor": 22,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T11:00:00",
+      "valor": 44,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T12:00:00",
+      "valor": 40,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T13:00:00",
+      "valor": 28,
+      "estado": "activo"
+    },
+    {
+      "variable": "parking",
+      "fecha_hora": "2026-10-14T14:00:00",
+      "valor": 32,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T09:00:00",
+      "valor": 21,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T10:00:00",
+      "valor": 21.7,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T11:00:00",
+      "valor": 22.3,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T12:00:00",
+      "valor": 23.1,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T13:00:00",
+      "valor": 24.2,
+      "estado": "activo"
+    },
+    {
+      "variable": "temperatura",
+      "fecha_hora": "2026-10-14T14:00:00",
+      "valor": 23.6,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T09:00:00",
+      "valor": 44,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T10:00:00",
+      "valor": 45,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T11:00:00",
+      "valor": 46,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T12:00:00",
+      "valor": 48,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T13:00:00",
+      "valor": 49,
+      "estado": "activo"
+    },
+    {
+      "variable": "humedad",
+      "fecha_hora": "2026-10-14T14:00:00",
+      "valor": 48,
+      "estado": "activo"
+    }
+  ]
+}

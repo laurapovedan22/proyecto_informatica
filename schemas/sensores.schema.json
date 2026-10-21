@@ -1,0 +1,135 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lumina:esquema:sensores",
+  "title": "sensores.json",
+  "description": "Última lectura de cada sensor y cámaras de vigilancia (Sprint 2: H2.1, H2.4). Los escriben el simulador o la maqueta IoT.",
+  "type": "object",
+  "required": [
+    "sensores"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "sensores": {
+      "type": "array",
+      "description": "Sensores del establecimiento.",
+      "items": {
+        "$ref": "#/$defs/sensor"
+      }
+    },
+    "camaras": {
+      "type": "array",
+      "description": "Cámaras de vigilancia.",
+      "items": {
+        "$ref": "#/$defs/camara"
+      }
+    }
+  },
+  "$defs": {
+    "sensor": {
+      "type": "object",
+      "description": "Sensor y su última lectura.",
+      "required": [
+        "id",
+        "nombre",
+        "tipo",
+        "zona"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único del sensor (p. ej. «temp-tienda»)."
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre visible."
+        },
+        "tipo": {
+          "enum": [
+            "temperatura",
+            "humedad",
+            "movimiento",
+            "distancia",
+            "contador_personas",
+            "contador_vehiculos"
+          ],
+          "description": "Tipo de sensor; la unidad se deduce de él (°C, %, cm, personas, coches)."
+        },
+        "zona": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador de una zona de configuracion.json."
+        },
+        "valor": {
+          "type": [
+            "number",
+            "boolean",
+            "null"
+          ],
+          "description": "Última lectura. En «movimiento», true/1 = detectado. null = sin lectura."
+        },
+        "estado": {
+          "enum": [
+            "activo",
+            "error",
+            "desactualizado"
+          ],
+          "description": "Estado del sensor.",
+          "default": "activo"
+        },
+        "actualizado_en": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Momento de la última lectura. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        }
+      }
+    },
+    "camara": {
+      "type": "object",
+      "description": "Cámara de vigilancia.",
+      "required": [
+        "id",
+        "nombre",
+        "zona"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único de la cámara."
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre visible."
+        },
+        "zona": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador de una zona de configuracion.json."
+        },
+        "url": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "URL de una imagen o de un flujo MJPEG. null = se muestra un marcador."
+        },
+        "estado": {
+          "enum": [
+            "activo",
+            "error"
+          ],
+          "description": "Estado de la cámara.",
+          "default": "activo"
+        }
+      }
+    }
+  }
+}

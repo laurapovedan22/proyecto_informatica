@@ -1,0 +1,37 @@
+{
+  "usuarios": [
+    {
+      "id": "usr-ana",
+      "nombre": "Ana López",
+      "email": "ana.lopez@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$cb7b25d55458cf55db854f2ebae34662$1154bacfc90e695a34299ec82cf7841a375bd202a9f5fab1541b3d3643d99148",
+      "rol": "admin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-01T09:00:00",
+      "ultimo_acceso": "2026-10-14T14:28:00"
+    },
+    {
+      "id": "usr-carlos",
+      "nombre": "Carlos Ruiz",
+      "email": "carlos.ruiz@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$468b647cf343da30e36fc2c752811cc0$1a648892a5fc946cf759bb3c509a785dac3704daf34b58d44f8a3d313426b9c7",
+      "rol": "seguridad",
+      "activo": true,
+      "conectado": true,
+      "creado_en": "2026-09-01T09:10:00",
+      "ultimo_acceso": "2026-10-14T14:20:00"
+    },
+    {
+      "id": "usr-marta",
+      "nombre": "Marta García",
+      "email": "marta.garcia@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$c8c888d55470c9ba5dc8324f3ed210e2$545c70938e468c8405a4b19a55f5df2d3514624073c3461b7f2bd419ea3b7741",
+      "rol": "gerente",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-02T10:30:00",
+      "ultimo_acceso": "2026-10-13T18:42:00"
+    }
+  ]
+}
