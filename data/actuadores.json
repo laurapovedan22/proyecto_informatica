@@ -1,0 +1,31 @@
+{
+  "actuadores": [
+    {
+      "id": "ventilador-tienda",
+      "nombre": "Ventilador de la tienda",
+      "tipo": "ventilador",
+      "zona": "tienda",
+      "encendido": true,
+      "modo": "manual",
+      "actualizado_en": "2026-10-14T13:05:00"
+    },
+    {
+      "id": "led-aviso",
+      "nombre": "LED de aviso",
+      "tipo": "led",
+      "zona": "almacen",
+      "encendido": true,
+      "modo": "automatico",
+      "actualizado_en": "2026-10-14T14:25:00"
+    },
+    {
+      "id": "alarma-digital",
+      "nombre": "Alarma digital",
+      "tipo": "alarma",
+      "zona": "almacen",
+      "encendido": true,
+      "modo": "automatico",
+      "actualizado_en": "2026-10-14T14:25:00"
+    }
+  ]
+}

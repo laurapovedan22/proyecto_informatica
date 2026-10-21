@@ -1,0 +1,36 @@
+{
+  "establecimiento": "Supermercado Lumina",
+  "aforo_maximo": 150,
+  "plazas_parking": 50,
+  "umbral_temperatura": 26.0,
+  "temperatura_critica": 30.0,
+  "antiguedad_maxima_lectura_min": null,
+  "zona_principal": "tienda",
+  "zonas": [
+    {
+      "id": "tienda",
+      "nombre": "Zona de tienda",
+      "restringida": false
+    },
+    {
+      "id": "almacen",
+      "nombre": "Almacén",
+      "restringida": true
+    },
+    {
+      "id": "parking",
+      "nombre": "Parking",
+      "restringida": false
+    },
+    {
+      "id": "salida-emergencia",
+      "nombre": "Salida de emergencia",
+      "restringida": true
+    },
+    {
+      "id": "puerta-personal",
+      "nombre": "Puerta de personal",
+      "restringida": true
+    }
+  ]
+}

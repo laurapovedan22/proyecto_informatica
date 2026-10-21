@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lumina:esquema:usuarios",
+  "title": "usuarios.json",
+  "description": "Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan en claro.",
+  "type": "object",
+  "required": [
+    "usuarios"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "usuarios": {
+      "type": "array",
+      "description": "Todas las cuentas, incluidas las solicitudes pendientes de aprobación.",
+      "items": {
+        "$ref": "#/$defs/usuario"
+      }
+    }
+  },
+  "$defs": {
+    "usuario": {
+      "type": "object",
+      "description": "Cuenta de un usuario.",
+      "required": [
+        "id",
+        "nombre",
+        "email",
+        "password_hash"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único de la cuenta (p. ej. «usr-ana»)."
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre visible.",
+          "maxLength": 45
+        },
+        "email": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Correo de acceso. Único sin distinguir mayúsculas; se guarda en minúsculas.",
+          "pattern": "^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$"
+        },
+        "password_hash": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Hash PBKDF2-SHA256: pbkdf2_sha256$iteraciones$sal$hash (hexadecimal). Nunca la contraseña en claro.",
+          "pattern": "^pbkdf2_sha256\\$[0-9]+\\$[0-9a-f]+\\$[0-9a-f]+$"
+        },
+        "rol": {
+          "enum": [
+            "admin",
+            "seguridad",
+            "gerente",
+            null
+          ],
+          "description": "Perfil de acceso. null = solicitud de cuenta pendiente de que el administrador le asigne uno."
+        },
+        "activo": {
+          "type": "boolean",
+          "default": true,
+          "description": "false = cuenta desactivada: no puede iniciar sesión."
+        },
+        "conectado": {
+          "type": "boolean",
+          "default": false,
+          "description": "Sesión abierta. Lo actualiza la aplicación al entrar y al salir."
+        },
+        "creado_en": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Momento del alta o de la solicitud. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        },
+        "ultimo_acceso": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Último inicio de sesión. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        }
+      }
+    }
+  }
+}
