@@ -22,11 +22,11 @@ class Identifiable(Protocol):
     def id(self) -> str: ...
 
 
-EntityT = TypeVar('EntityT', bound=Identifiable)
-
-
 class DuplicateError(ValueError):
     """Ya existe un elemento con el mismo ``id`` (o, en los usuarios, con el mismo correo)."""
+
+
+EntityT = TypeVar('EntityT', bound=Identifiable)
 
 
 class Repository(ABC, Generic[EntityT]):

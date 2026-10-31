@@ -58,7 +58,7 @@ class Page(ABC):
         except LuminaError as error:
             ui.notify(str(error), type='negative')
             return False
-        except DataFormatError as error:  # un JSON a medio escribir por otro proceso: no se guarda nada
+        except (DataFormatError, OSError) as error:
             Page.report_data_error(error, 'No se ha completado la acción')
             return False
         if success:
@@ -66,7 +66,7 @@ class Page(ABC):
         return True
 
     @staticmethod
-    def report_data_error(error: DataFormatError, intro: str) -> None:
+    def report_data_error(error: DataFormatError | OSError, intro: str) -> None:
         log.warning('%s: %s', intro, error)
         ui.notify(f'{intro}: {error}', type='negative', multi_line=True)
 
@@ -110,7 +110,8 @@ class ProtectedPage(Page):
         surte efecto en las páginas que ya tenía abiertas. Si la cuenta o el perfil han cambiado
         pero la página sigue permitida, se vuelve a construir (lo que muestra depende del perfil).
 
-        Lanza :class:`DataFormatError` si no se pueden leer las cuentas: entonces no se autoriza nada.
+        Lanza :class:`DataFormatError` u :class:`OSError` si no se pueden leer las cuentas:
+        entonces no se autoriza nada.
         """
         user = self._context.session().current_user()
         if user is None:
@@ -128,7 +129,7 @@ class ProtectedPage(Page):
         """:meth:`current_user` para una acción: si no se pueden leer las cuentas, avisa y no autoriza."""
         try:
             return self.current_user()
-        except DataFormatError as error:
+        except (DataFormatError, OSError) as error:
             self.report_data_error(error, 'No se ha podido comprobar tu sesión')
             return None
 
@@ -197,7 +198,7 @@ class LiveData(Generic[T]):
                     self._timer.deactivate()  # la página ya no es para este usuario: deja de consultar
                 return None
             latest = self._loader()
-        except DataFormatError as error:
+        except (DataFormatError, OSError) as error:
             if str(error) != self._last_error:
                 Page.report_data_error(error, 'No se pudieron leer los datos')
                 self._last_error = str(error)

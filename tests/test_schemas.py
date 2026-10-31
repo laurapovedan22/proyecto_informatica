@@ -14,7 +14,7 @@ from typing import Any
 import pytest
 from jsonschema import Draft202012Validator
 
-from lumina.controllers import Services
+from lumina.controllers import AuthenticationError, Services
 from lumina.models import Role, User
 from lumina.repositories import Repositories
 
@@ -80,6 +80,8 @@ def first(document: Any, key: str) -> dict[str, Any]:
         ('usuarios.json', lambda doc: first(doc, 'usuarios').update(rol='jefe')),
         ('usuarios.json', lambda doc: first(doc, 'usuarios').update(password_hash='gerente123')),
         ('usuarios.json', lambda doc: first(doc, 'usuarios').pop('email')),
+        ('usuarios.json', lambda doc: first(doc, 'usuarios').update(intentos_fallidos=-1)),
+        ('usuarios.json', lambda doc: first(doc, 'usuarios').update(bloqueado='sí')),
         ('sensores.json', lambda doc: first(doc, 'sensores').update(tipo='presion')),
         ('sensores.json', lambda doc: first(doc, 'sensores').update(valor='alto')),
         ('actuadores.json', lambda doc: first(doc, 'actuadores').update(encendido='sí')),
@@ -114,6 +116,9 @@ def test_what_the_application_writes_follows_the_schemas(services: Services, adm
     services.users.create('Pedro Gil', 'pedro@lumina.es', Role.SECURITY, admin)
     services.users.update_account('usr-marta', 'Marta García Ruiz', 'marta.ruiz@lumina.es', admin)
     services.auth.login('carlos.ruiz@lumina.es', 'seguridad123')
+    for _ in range(3):  # la tercera contraseña incorrecta bloquea la cuenta
+        with pytest.raises(AuthenticationError):
+            services.auth.login('pedro@lumina.es', 'incorrecta')
     assert errors('usuarios.json', load(data_dir / 'usuarios.json')) == []
 
 

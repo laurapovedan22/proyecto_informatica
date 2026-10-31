@@ -17,3 +17,4 @@ class UserCounts:
     connected: int
     pending: int
     inactive: int = 0
+    locked: int = 0

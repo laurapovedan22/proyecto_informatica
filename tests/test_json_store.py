@@ -124,3 +124,16 @@ def test_changes_are_not_saved_over_a_half_written_file(data_dir: Path, reposito
     with pytest.raises(DataFormatError):
         repositories.alerts.update(alert)
     assert path.read_text(encoding='utf-8') == '{"alertas": ['
+
+
+def test_la_codificacion_invalida_se_trata_como_datos_danados(tmp_path: Path) -> None:
+    """Un JSON que deja de ser UTF-8 respeta la gracia de lectura y bloquea las escrituras."""
+    path = tmp_path / 'datos.json'
+    file = JsonFile(path)
+    file.write({'valor': 1})
+    path.write_bytes(b'\xff')
+    assert file.read() == {'valor': 1}
+    with pytest.raises(DataFormatError, match=r'datos\.json: JSON no válido'):
+        file.read(strict=True)
+    with pytest.raises(DataFormatError):
+        JsonFile(path).read()

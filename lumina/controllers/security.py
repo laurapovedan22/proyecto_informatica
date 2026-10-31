@@ -30,11 +30,12 @@ class PasswordHasher:
         try:
             algorithm, iterations, salt, digest = encoded.split('$')
             rounds = int(iterations)
-        except ValueError:
+            if algorithm != self.ALGORITHM:
+                return False
+            return hmac.compare_digest(self._digest(password, salt, rounds), digest)
+        except (ValueError, OverflowError, TypeError):
+            # Un hash dañado se rechaza como credencial inválida, sin romper el formulario.
             return False
-        if algorithm != self.ALGORITHM:
-            return False
-        return hmac.compare_digest(self._digest(password, salt, rounds), digest)
 
     @staticmethod
     def temporary_password() -> str:

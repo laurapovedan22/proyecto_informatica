@@ -1,0 +1,24 @@
+# Entorno virtual y cachés de Python
+.venv/
+__pycache__/
+*.py[cod]
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Almacenamiento de sesiones de NiceGUI
+.nicegui/
+
+# Ejecutable generado con scripts/empaquetar.py (PyInstaller)
+build/
+dist/
+*.spec
+
+# Ficheros temporales de escritura atómica de los JSON y bloqueo de instancia única
+data/*.tmp
+data/.lumina.lock
+
+# Sistema operativo / IDE
+.DS_Store
+.vscode/
+.idea/

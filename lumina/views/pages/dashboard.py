@@ -71,6 +71,7 @@ class DashboardPage(ProtectedPage):
     """Funciones de los casos de uso del anteproyecto, con el sprint del backlog que las entrega."""
 
     def render(self) -> None:
+        self._account = self.live(lambda: self.services.users.get(self.user.id), self._refresh_user)
         PageHeader(f'Dashboard · {self.role.short_label}', self.SUMMARIES[self.role])
         if self.user.can(Permission.MANAGE_USERS):
             self._counts: LiveData[UserCounts] = self.live(self.services.users.counts, self._accounts.refresh)
@@ -94,6 +95,16 @@ class DashboardPage(ProtectedPage):
                 action='Revisar solicitudes',
                 on_action=lambda: ui.navigate.to(Route.USERS),
             )
+        if counts.locked:
+            AlertBanner(
+                'El administrador debe desbloquearla para que pueda volver a entrar.' if counts.locked == 1
+                else 'El administrador debe desbloquearlas para que puedan volver a entrar.',
+                emphasis=Formatter.plural(
+                    counts.locked, 'cuenta bloqueada por intentos fallidos', 'cuentas bloqueadas por intentos fallidos'
+                ),
+                action='Revisar cuentas',
+                on_action=lambda: ui.navigate.to(Route.USERS),
+            )
         with MetricGrid(columns=4):
             MetricCard('Usuarios', str(counts.total), 'Registrados')
             MetricCard('Conectados', str(counts.connected), 'En este momento')
@@ -103,6 +114,12 @@ class DashboardPage(ProtectedPage):
 
     # --- Todos los perfiles --------------------------------------------------------------------
 
+    def _refresh_user(self) -> None:
+        self.user = self._account.value
+        self.shell.show_user(self.user)
+        self._account_panel.refresh()
+
+    @ui.refreshable_method
     def _account_panel(self) -> None:
         user = self.user
         with Panel('Tu cuenta'):
