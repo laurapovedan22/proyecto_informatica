@@ -40,6 +40,10 @@ class User:
     connected: bool = False
     created_at: datetime | None = None
     last_login_at: datetime | None = None
+    failed_attempts: int = 0
+    """Contraseñas incorrectas seguidas desde el último inicio de sesión correcto o desbloqueo."""
+    locked: bool = False
+    """Bloqueada por intentos fallidos: no puede iniciar sesión hasta que la desbloquee un administrador."""
 
     @property
     def is_pending(self) -> bool:
@@ -47,6 +51,7 @@ class User:
 
     @property
     def can_sign_in(self) -> bool:
+        """Cuenta activa y con perfil. El bloqueo solo impide iniciar sesiones nuevas: no cierra las abiertas."""
         return self.active and self.role is not None
 
     @property
@@ -57,10 +62,19 @@ class User:
         return self.role is not None and self.role.can(permission)
 
     def signed_in(self, at: datetime) -> User:
-        return replace(self, connected=True, last_login_at=at)
+        return replace(self, connected=True, last_login_at=at, failed_attempts=0)
 
     def signed_out(self) -> User:
         return replace(self, connected=False)
+
+    def with_failed_attempt(self, max_attempts: int) -> User:
+        """Suma una contraseña incorrecta; al llegar a ``max_attempts`` seguidas, la cuenta se bloquea."""
+        attempts = self.failed_attempts + 1
+        return replace(self, failed_attempts=attempts, locked=self.locked or attempts >= max_attempts)
+
+    def unlocked(self) -> User:
+        """Cuenta desbloqueada por el administrador, con el contador de intentos a cero."""
+        return replace(self, failed_attempts=0, locked=False)
 
     def with_role(self, role: Role) -> User:
         return replace(self, role=role)

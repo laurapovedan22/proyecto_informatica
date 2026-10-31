@@ -8,7 +8,7 @@ from typing import Any, ClassVar
 from nicegui import run, ui
 from nicegui.events import ValueChangeEventArguments
 
-from ...controllers import LuminaError, UserInputValidator
+from ...controllers import AuthController, LuminaError, UserInputValidator
 from ...models import Permission, Role, User
 from ...repositories import DataFormatError
 from ..components import (
@@ -55,7 +55,8 @@ class UsersPage(ProtectedPage):
         self._table()
         Note('El administrador asigna el perfil de cada usuario. Las solicitudes de registro aparecen primero, '
              'como «Pendiente de aprobación», hasta que se les asigna un perfil. Una cuenta desactivada no puede '
-             'iniciar sesión.')
+             f'iniciar sesión. Tras {AuthController.MAX_FAILED_ATTEMPTS} contraseñas incorrectas seguidas, la '
+             'cuenta queda bloqueada hasta que el administrador la desbloquee.')
 
     # --- Tabla --------------------------------------------------------------------------------
 
@@ -90,13 +91,20 @@ class UsersPage(ProtectedPage):
                 select.disable()
         with row.cell():
             label, tone = self._state(user)
-            StatusText(label, tone=tone)
+            StatusText(label, tone=tone, classes='block' if user.failed_attempts else '')
+            if user.failed_attempts:
+                attempts = Formatter.plural(user.failed_attempts, 'intento fallido', 'intentos fallidos')
+                Text(attempts, classes=f'{Theme.SMALL} {Theme.MUTED}')
         with row.cell(classes='whitespace-nowrap'):
             if is_self:
                 Text('Tu cuenta', classes=f'{Theme.SMALL} {Theme.MUTED}')
             else:
                 with Box(Theme.BUTTON_ROW):
                     Button('Editar', on_click=partial(self._edit_account, user)).mark(f'edit-{user.id}')
+                    if user.locked:
+                        Button(
+                            'Desbloquear', variant=ButtonVariant.PRIMARY, on_click=partial(self._unlock, user.id)
+                        ).mark(f'unlock-{user.id}')
                     Button(
                         'Desactivar' if user.active else 'Activar',
                         variant=ButtonVariant.DANGER if user.active else ButtonVariant.DEFAULT,
@@ -105,10 +113,12 @@ class UsersPage(ProtectedPage):
 
     @staticmethod
     def _state(user: User) -> tuple[str, ToneName]:
-        if user.is_pending:
-            return 'Pendiente de aprobación', ToneName.WARNING
         if not user.active:
             return 'Desactivada', ToneName.DANGER
+        if user.locked:
+            return 'Bloqueada', ToneName.DANGER
+        if user.is_pending:
+            return 'Pendiente de aprobación', ToneName.WARNING
         if user.connected:
             return 'Conectado', ToneName.POSITIVE
         return 'Desconectado', ToneName.MUTED
@@ -124,6 +134,10 @@ class UsersPage(ProtectedPage):
     def _set_active(self, user_id: str, active: bool) -> None:
         message = 'Cuenta reactivada.' if active else 'Cuenta desactivada.'
         self.act(lambda actor: self.services.users.set_active(user_id, active, actor), success=message)
+        self._users.reload()
+
+    def _unlock(self, user_id: str) -> None:
+        self.act(lambda actor: self.services.users.unlock(user_id, actor), success='Cuenta desbloqueada.')
         self._users.reload()
 
     async def _edit_account(self, user: User) -> None:
@@ -181,7 +195,7 @@ class UsersPage(ProtectedPage):
             credentials = await run.io_bound(
                 self.services.users.create, self._new_name.value, self._new_email.value, role, actor
             )
-        except (LuminaError, DataFormatError) as error:
+        except (LuminaError, DataFormatError, OSError) as error:
             ui.notify(str(error), type='negative')
             return
         if credentials is None or self.actor() is None:  # si acaba de perder el acceso, no ve la contraseña

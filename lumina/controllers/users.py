@@ -41,6 +41,7 @@ class UserController:
             connected=sum(1 for user in users if user.connected),
             pending=sum(1 for user in users if user.is_pending),
             inactive=sum(1 for user in users if not user.active),
+            locked=sum(1 for user in users if user.locked),
         )
 
     def get(self, user_id: str) -> User:
@@ -96,14 +97,19 @@ class UserController:
             user_id, actor, lambda current: current if current.active == active else current.with_active(active)
         )
 
+    def unlock(self, user_id: str, actor: User) -> User:
+        """Desbloquea una cuenta bloqueada por intentos fallidos; su contador vuelve a cero."""
+        return self._change_account(user_id, actor, lambda current: current.unlocked() if current.locked else current)
+
     # --- Perfil propio (cualquier usuario) -------------------------------------------------
 
-    def update_profile(self, user_id: str, name: str, email: str) -> User:
+    def update_profile(self, user_id: str, name: str, email: str, actor: User) -> User:
         clean_name = UserInputValidator.name(name)
         clean_email = UserInputValidator.email(email)
-        return self._modify(user_id, self._profile_change(clean_name, clean_email))
+        return self._change_own_account(user_id, actor, self._profile_change(clean_name, clean_email))
 
-    def change_password(self, user_id: str, current: str, new: str, confirmation: str) -> None:
+    def change_password(self, user_id: str, current: str, new: str, confirmation: str, actor: User) -> None:
+        self._require_owner(user_id, actor)
         user = self.get(user_id)
         if not self._hasher.verify(current, user.password_hash):
             raise AuthenticationError('La contraseña actual no es correcta.')
@@ -118,9 +124,25 @@ class UserController:
                 raise AuthenticationError('La contraseña acaba de cambiar. Vuelve a intentarlo.')
             return latest.with_password_hash(new_hash)
 
-        self._modify(user_id, change)
+        self._change_own_account(user_id, actor, change)
 
     # --- Auxiliares -------------------------------------------------------------------------
+
+    @staticmethod
+    def _require_owner(user_id: str, actor: User) -> None:
+        if user_id != actor.id:
+            raise PermissionDeniedError('Solo puedes modificar tu propio perfil.')
+
+    def _change_own_account(self, user_id: str, actor: User, change: Callable[[User], User]) -> User:
+        """Comprueba la titularidad y el acceso sobre la cuenta vigente dentro de la transacción."""
+        self._require_owner(user_id, actor)
+
+        def checked(current: User) -> User:
+            if not current.can_sign_in:
+                raise AuthenticationError('Tu cuenta ya no tiene acceso.')
+            return change(current)
+
+        return self._modify(user_id, checked)
 
     def _change_account(self, user_id: str, actor: User, change: Callable[[User], User]) -> User:
         """Cambia otra cuenta comprobando, en la misma transacción, que el actor sigue pudiendo hacerlo."""

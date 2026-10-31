@@ -111,7 +111,7 @@ class JsonFile:
     def _load(self) -> JsonObject:
         try:
             raw: object = json.loads(self._path.read_text(encoding='utf-8'))
-        except json.JSONDecodeError as error:
+        except (json.JSONDecodeError, UnicodeDecodeError) as error:
             raise DataFormatError(f'{self.name}: JSON no válido ({error})') from error
         if not isinstance(raw, dict):
             raise DataFormatError(f'{self.name}: la raíz del documento debe ser un objeto JSON')

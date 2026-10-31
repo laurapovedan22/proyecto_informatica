@@ -86,6 +86,17 @@
           ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
           "description": "Último inicio de sesión. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        },
+        "intentos_fallidos": {
+          "type": "integer",
+          "minimum": 0,
+          "default": 0,
+          "description": "Contraseñas incorrectas seguidas desde el último inicio de sesión correcto o el último desbloqueo. Al llegar a 3, la cuenta se bloquea."
+        },
+        "bloqueado": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee."
         }
       }
     }

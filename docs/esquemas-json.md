@@ -41,6 +41,8 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 | `conectado` | booleano |  | Sesión abierta. Lo actualiza la aplicación al entrar y al salir. (por defecto `false`) |
 | `creado_en` | fecha ISO 8601 · null |  | Momento del alta o de la solicitud. ISO 8601 en hora local (2026-10-14T14:30:00). |
 | `ultimo_acceso` | fecha ISO 8601 · null |  | Último inicio de sesión. ISO 8601 en hora local (2026-10-14T14:30:00). |
+| `intentos_fallidos` | entero |  | Contraseñas incorrectas seguidas desde el último inicio de sesión correcto o el último desbloqueo. Al llegar a 3, la cuenta se bloquea. (por defecto `0`; ≥ 0) |
+| `bloqueado` | booleano |  | true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee. (por defecto `false`) |
 
 ## `sensores.json`
 

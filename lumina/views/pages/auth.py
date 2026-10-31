@@ -55,7 +55,7 @@ class LoginPage(PublicPage):
         self._feedback.show('')
         try:
             user = await run.io_bound(self.services.auth.login, self._email.value, self._password.value)
-        except (LuminaError, DataFormatError) as error:
+        except (LuminaError, DataFormatError, OSError) as error:
             self._feedback.show(str(error))
             return
         finally:
@@ -120,7 +120,7 @@ class RegisterPage(PublicPage):
                 self._password.value,
                 self._confirmation.value,
             )
-        except (LuminaError, DataFormatError) as error:
+        except (LuminaError, DataFormatError, OSError) as error:
             self._feedback.show(str(error), ToneName.DANGER)
             return
         finally:

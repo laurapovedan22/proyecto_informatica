@@ -14,6 +14,8 @@ from typing import Any
 import pytest
 from nicegui.testing import User, user_simulation
 
+from lumina.repositories import JsonFile
+
 LOGIN_RETRIES = 40  # el hash PBKDF2 de las cuentas de ejemplo tarda unas décimas de segundo
 MAIN_FILE = Path(__file__).resolve().parent.parent / 'main.py'
 
@@ -58,6 +60,34 @@ async def test_protected_pages_require_a_session(user: User, route: str) -> None
 async def test_wrong_password_shows_an_error(user: User) -> None:
     await login(user, 'carlos.ruiz@lumina.es', 'incorrecta')
     await user.should_see('Correo o contraseña incorrectos.', retries=LOGIN_RETRIES)
+
+
+async def test_three_wrong_passwords_lock_the_account_until_an_admin_unlocks_it(user: User, data_dir: Path) -> None:
+    await login(user, 'marta.garcia@lumina.es', 'incorrecta')
+    await user.should_see('Te quedan 2 intentos antes de que se bloquee la cuenta.', retries=LOGIN_RETRIES)
+    for message in ('Te quedan 2 intentos', 'Te queda 1 intento', 'Tu cuenta está bloqueada'):
+        await login(user, 'carlos.ruiz@lumina.es', 'incorrecta')
+        await user.should_see(message, retries=LOGIN_RETRIES)
+    assert accounts(data_dir)['usr-carlos']['bloqueado'] is True
+    await login(user, 'carlos.ruiz@lumina.es', 'seguridad123')  # tampoco con la contraseña correcta
+    await user.should_see('Pide al administrador que la desbloquee.', retries=LOGIN_RETRIES)
+
+    await login(user, 'ana.lopez@lumina.es', 'admin123')
+    await user.should_see('1 cuenta bloqueada por intentos fallidos', retries=LOGIN_RETRIES)
+    await user.open('/usuarios')
+    await user.should_see('Bloqueada')
+    await user.should_see('3 intentos fallidos')
+    await user.should_see('1 intento fallido')  # Marta: cuenta el fallo, pero aún no está bloqueada
+    await user.should_not_see(marker='unlock-usr-marta')
+    user.find(marker='unlock-usr-carlos').click()
+    await user.should_see('Cuenta desbloqueada.')
+    carlos = accounts(data_dir)['usr-carlos']
+    assert (carlos['bloqueado'], carlos['intentos_fallidos']) == (False, 0)
+
+    user.find('Cerrar sesión').click()
+    await user.should_see('Iniciar sesión')  # que termine la navegación
+    await login(user, 'carlos.ruiz@lumina.es', 'seguridad123')
+    await user.should_see('Dashboard · Seguridad', retries=LOGIN_RETRIES)
 
 
 @pytest.mark.parametrize(
@@ -271,3 +301,139 @@ async def test_logging_out_always_ends_the_session(user: User, data_dir: Path) -
     await user.should_see('Iniciar sesión')
     await user.open('/dashboard')
     await user.should_see('Iniciar sesión')
+
+
+@pytest.mark.parametrize(
+    'action',
+    ['login', 'intento', 'registro', 'alta', 'edicion', 'desactivar', 'desbloquear', 'perfil', 'contrasena'],
+)
+async def test_los_errores_de_escritura_se_muestran_y_no_guardan(
+    user: User, data_dir: Path, monkeypatch: pytest.MonkeyPatch, action: str
+) -> None:
+    """Simula un disco lleno en cada formulario y comprueba que no se anuncia un guardado correcto."""
+    if action in ('login', 'intento'):  # también un intento fallido debe poder anotarse
+        await user.open('/login')
+        user.find(marker='login-email').type('marta.garcia@lumina.es')
+        user.find(marker='login-password').type('gerente123' if action == 'login' else 'incorrecta')
+        button = 'Entrar'
+    elif action == 'registro':
+        await user.open('/registro')
+        user.find(marker='register-name').type('Lucía Fernández')
+        user.find(marker='register-email').type('lucia@lumina.es')
+        user.find(marker='register-password').type('secreta1')
+        user.find(marker='register-confirmation').type('secreta1')
+        button = 'Solicitar cuenta'
+    elif action in ('alta', 'edicion', 'desactivar', 'desbloquear'):
+        if action == 'desbloquear':
+            edit_user(data_dir, 'usr-marta', bloqueado=True, intentos_fallidos=3)
+        await admin_on_users_page(user)
+        if action == 'alta':
+            user.find('Añadir usuario').click()
+            user.find(marker='new-name').type('Lucía Fernández')
+            user.find(marker='new-email').type('lucia@lumina.es')
+            button = 'Guardar usuario'
+        elif action == 'edicion':
+            user.find(marker='edit-usr-marta').click()
+            await user.should_see('Editar usuario')
+            user.find(marker='edit-name').clear().type('Marta editada')
+            button = 'edit-save'
+        elif action == 'desactivar':
+            button = 'active-usr-marta'
+        else:
+            button = 'unlock-usr-marta'
+    else:
+        await login(user, 'marta.garcia@lumina.es', 'gerente123')
+        await user.should_see('Dashboard · Gerente', retries=LOGIN_RETRIES)
+        await user.open('/perfil')
+        if action == 'perfil':
+            user.find(marker='profile-name').clear().type('Marta editada')
+            button = 'Guardar cambios'
+        else:
+            user.find(marker='profile-current').type('gerente123')
+            user.find(marker='profile-new').type('nueva123')
+            user.find(marker='profile-confirmation').type('nueva123')
+            button = 'Actualizar contraseña'
+
+    before = accounts(data_dir)
+
+    def disk_full(*args: object, **kwargs: object) -> None:
+        raise OSError('No queda espacio en el disco.')
+
+    monkeypatch.setattr(JsonFile, 'write', disk_full)
+    if action in ('edicion', 'desactivar', 'desbloquear'):
+        user.find(marker=button).click()
+    else:
+        user.find(button).click()
+    await user.should_see('No queda espacio en el disco.', retries=LOGIN_RETRIES)
+    assert accounts(data_dir) == before
+    await user.should_not_see('Datos actualizados.')
+    await user.should_not_see('Contraseña actualizada.')
+    await user.should_not_see('Usuario creado')
+
+
+@pytest.mark.parametrize('route', ['/dashboard', '/perfil'])
+async def test_la_desactivacion_expulsa_sin_necesidad_de_pulsar_un_boton(
+    monkeypatch: pytest.MonkeyPatch, data_dir: Path, route: str
+) -> None:
+    """Todas las pantallas privadas revalidan también las sesiones de los perfiles sin administración."""
+    monkeypatch.setenv('LUMINA_REFRESH_SECONDS', '0.2')
+    async with user_simulation(main_file=MAIN_FILE) as user:
+        await login(user, 'marta.garcia@lumina.es', 'gerente123')
+        await user.should_see('Dashboard · Gerente', retries=LOGIN_RETRIES)
+        await user.open(route)
+        edit_user(data_dir, 'usr-marta', activo=False)
+        await user.should_see('Iniciar sesión', retries=LOGIN_RETRIES)
+
+
+async def test_el_perfil_refresca_datos_externos_sin_borrar_la_edicion(
+    monkeypatch: pytest.MonkeyPatch, data_dir: Path
+) -> None:
+    """Un cambio externo actualiza la cuenta y respeta un nombre que aún no se ha guardado."""
+    monkeypatch.setenv('LUMINA_REFRESH_SECONDS', '0.2')
+    async with user_simulation(main_file=MAIN_FILE) as user:
+        await login(user, 'marta.garcia@lumina.es', 'gerente123')
+        await user.should_see('Dashboard · Gerente', retries=LOGIN_RETRIES)
+        await user.open('/perfil')
+        user.find(marker='profile-name').clear().type('Nombre sin guardar')
+        edit_user(data_dir, 'usr-marta', nombre='Marta actualizada', email='marta.nueva@lumina.es')
+        await user.should_see('Marta actualizada', retries=LOGIN_RETRIES)
+        user.find('Guardar cambios').click()
+        await user.should_see('Datos actualizados.')
+        marta = accounts(data_dir)['usr-marta']
+        assert (marta['nombre'], marta['email']) == ('Nombre sin guardar', 'marta.nueva@lumina.es')
+
+
+@pytest.mark.parametrize('periodic', [False, True], ids=['accion', 'refresco'])
+async def test_un_error_de_lectura_avisa_y_permite_recuperarse(
+    monkeypatch: pytest.MonkeyPatch, data_dir: Path, periodic: bool
+) -> None:
+    """Un fallo temporal de lectura no autoriza cambios ni detiene permanentemente el refresco."""
+    monkeypatch.setenv('LUMINA_REFRESH_SECONDS', '0.2' if periodic else '0')
+    async with user_simulation(main_file=MAIN_FILE) as user:
+        await login(user, 'marta.garcia@lumina.es', 'gerente123')
+        await user.should_see('Dashboard · Gerente', retries=LOGIN_RETRIES)
+        await user.open('/perfil')
+        before = accounts(data_dir)
+
+        def unreadable(*args: object, **kwargs: object) -> None:
+            raise PermissionError('No se puede leer usuarios.json.')
+
+        with monkeypatch.context() as patch:
+            patch.setattr(JsonFile, 'read', unreadable)
+            if not periodic:
+                user.find('Guardar cambios').click()
+            await user.should_see('No se puede leer usuarios.json.', retries=LOGIN_RETRIES)
+            assert accounts(data_dir) == before
+        if periodic:
+            edit_user(data_dir, 'usr-marta', activo=False)
+            await user.should_see('Iniciar sesión', retries=LOGIN_RETRIES)
+        else:
+            user.find('Guardar cambios').click()
+            await user.should_see('Datos actualizados.')
+
+
+async def test_una_solicitud_desactivada_muestra_su_estado_real(user: User, data_dir: Path) -> None:
+    """La falta de perfil no debe ocultar que el administrador ha desactivado la cuenta."""
+    edit_user(data_dir, 'usr-marta', rol=None, activo=False)
+    await admin_on_users_page(user)
+    await user.should_see('Desactivada')

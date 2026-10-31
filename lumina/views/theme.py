@@ -90,7 +90,7 @@ class Theme:
     USER_NAME = 'text-[13px] font-medium'
     ROLE = f'text-xs {Palette.MUTED.text}'
     NAV = 'flex flex-row flex-wrap gap-1 sm:flex-col sm:flex-nowrap'
-    CONTENT = 'flex-1 min-w-0 px-3.5 py-5 sm:p-[22px] lg:p-7'
+    CONTENT = 'flex-1 min-w-0 max-w-full px-3.5 py-5 sm:p-[22px] lg:p-7'
     PAGE_HEADER = 'mb-6'
 
     # Bloques ----------------------------------------------------------------------------------

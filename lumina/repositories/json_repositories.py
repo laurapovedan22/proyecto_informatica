@@ -144,6 +144,8 @@ class JsonUserRepository(JsonEntityCollection[User], UserRepository):
             connected=record.flag('conectado', default=False),
             created_at=record.optional_timestamp('creado_en'),
             last_login_at=record.optional_timestamp('ultimo_acceso'),
+            failed_attempts=record.optional_integer('intentos_fallidos') or 0,
+            locked=record.flag('bloqueado', default=False),
         )
 
     def _encode(self, item: User) -> JsonObject:
@@ -157,6 +159,8 @@ class JsonUserRepository(JsonEntityCollection[User], UserRepository):
             'conectado': item.connected,
             'creado_en': timestamp_to_json(item.created_at),
             'ultimo_acceso': timestamp_to_json(item.last_login_at),
+            'intentos_fallidos': item.failed_attempts,
+            'bloqueado': item.locked,
         }
 
 
