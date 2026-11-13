@@ -12,6 +12,7 @@ from pathlib import Path
 from typing import Any
 
 import pytest
+from nicegui import ui
 from nicegui.testing import User, user_simulation
 
 from lumina.repositories import JsonFile
@@ -51,7 +52,7 @@ async def test_root_redirects_to_login(user: User) -> None:
     await user.should_see('Supervisión del supermercado y parking')
 
 
-@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil'])
+@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil', '/supervision'])
 async def test_protected_pages_require_a_session(user: User, route: str) -> None:
     await user.open(route)
     await user.should_see('Iniciar sesión')
@@ -94,13 +95,19 @@ async def test_three_wrong_passwords_lock_the_account_until_an_admin_unlocks_it(
     ('email', 'password', 'title', 'visible', 'hidden'),
     [
         (
-            'ana.lopez@lumina.es', 'admin123', 'Dashboard · Administración',
-            ['Solicitudes', 'Gestionar cuentas, perfiles y solicitudes', 'Configurar umbrales y zonas restringidas'],
+            'elena.navarro@lumina.es', 'superadmin123', 'Dashboard · Superadministración',
+            ['Solicitudes', 'Gestionar cuentas, perfiles y solicitudes',
+             'Gestionar administradores: permisos, cuentas y desbloqueo', 'Superadministrador'],
             [],
         ),
         (
+            'ana.lopez@lumina.es', 'admin123', 'Dashboard · Administración',
+            ['Solicitudes', 'Gestionar cuentas, perfiles y solicitudes', 'Configurar umbrales y zonas restringidas'],
+            ['Gestionar administradores: permisos, cuentas y desbloqueo'],
+        ),
+        (
             'carlos.ruiz@lumina.es', 'seguridad123', 'Dashboard · Seguridad',
-            ['Supervisar sensores y cámaras', 'Controlar ventiladores, LED y alarma', 'Sprint 2'],
+            ['Supervisar sensores y cámaras', 'Controlar ventiladores, LED y alarma', 'Disponible en este panel'],
             ['Usuarios', 'Gestionar cuentas, perfiles y solicitudes'],
         ),
         (
@@ -109,7 +116,7 @@ async def test_three_wrong_passwords_lock_the_account_until_an_admin_unlocks_it(
             ['Usuarios', 'Supervisar sensores y cámaras', 'Controlar ventiladores, LED y alarma'],
         ),
     ],
-    ids=['administrador', 'seguridad', 'gerente'],
+    ids=['superadministrador', 'administrador', 'seguridad', 'gerente'],
 )
 async def test_each_role_opens_its_own_dashboard(
     user: User, email: str, password: str, title: str, visible: list[str], hidden: list[str]
@@ -186,7 +193,7 @@ async def admin_on_users_page(user: User) -> None:
     await login(user, 'ana.lopez@lumina.es', 'admin123')
     await user.should_see('Dashboard · Administración', retries=LOGIN_RETRIES)
     await user.open('/usuarios')
-    await user.should_see('3 usuarios · 2 conectados')
+    await user.should_see('5 usuarios · 2 conectados')
 
 
 async def test_admin_creates_an_account(user: User, data_dir: Path) -> None:
@@ -225,7 +232,7 @@ async def test_admin_deactivates_an_account(user: User, data_dir: Path) -> None:
 
 async def test_a_demoted_admin_loses_user_management(user: User, data_dir: Path) -> None:
     await admin_on_users_page(user)
-    edit_user(data_dir, 'usr-ana', rol='gerente')  # otro administrador le quita el perfil
+    edit_user(data_dir, 'usr-ana', rol='gerente')  # el superadministrador le quita el perfil
     user.find(marker='active-usr-marta').click()
     await user.should_see('Dashboard · Gerente')
     assert accounts(data_dir)['usr-marta']['activo'] is True
@@ -430,6 +437,56 @@ async def test_un_error_de_lectura_avisa_y_permite_recuperarse(
         else:
             user.find('Guardar cambios').click()
             await user.should_see('Datos actualizados.')
+
+
+# --- Superadministrador: los administradores no se modifican entre sí --------------------------
+
+
+async def test_admins_see_other_admins_without_being_able_to_touch_them(user: User, data_dir: Path) -> None:
+    edit_user(data_dir, 'usr-javier', bloqueado=True, intentos_fallidos=3)
+    await admin_on_users_page(user)
+    await user.should_see(marker='protected-usr-javier', content='Solo el superadministrador')
+    await user.should_see(marker='protected-usr-elena', content='Cuenta protegida')
+    await user.should_see('Bloqueada')
+    for account in ('usr-javier', 'usr-elena'):
+        for action in ('edit', 'active', 'unlock'):
+            await user.should_not_see(marker=f'{action}-{account}')
+    for account in ('usr-marta', 'usr-carlos'):  # seguridad y gerencia sí las gestiona
+        await user.should_see(marker=f'edit-{account}')
+    role = user.find(marker='role-usr-marta').elements.pop()
+    assert isinstance(role, ui.select) and set(role.options) == {'gerente', 'seguridad'}  # no puede crear admins
+    await user.should_see('solo el superadministrador gestiona sus perfiles y permisos')
+    user.find('Añadir usuario').click()
+    new_role = user.find(marker='new-role').elements.pop()
+    assert isinstance(new_role, ui.select) and set(new_role.options) == {'gerente', 'seguridad'}
+
+
+async def test_the_superadmin_manages_admin_accounts_and_permissions(user: User, data_dir: Path) -> None:
+    edit_user(data_dir, 'usr-javier', bloqueado=True, intentos_fallidos=3)
+    await login(user, 'elena.navarro@lumina.es', 'superadmin123')
+    await user.should_see('Dashboard · Superadministración', retries=LOGIN_RETRIES)
+    await user.should_see('1 cuenta bloqueada por intentos fallidos')  # la de un administrador
+    await user.open('/usuarios')
+    role = user.find(marker='role-usr-ana').elements.pop()
+    assert isinstance(role, ui.select) and set(role.options) == {'gerente', 'seguridad', 'admin'}
+    await user.should_see(marker='role-usr-elena', content='Superadministrador')  # el suyo, sin desplegable
+    user.find(marker='unlock-usr-javier').click()
+    await user.should_see('Cuenta desbloqueada.')
+    user.find(marker='active-usr-javier').click()  # cierra la cuenta de un administrador
+    await user.should_see('Cuenta desactivada.')
+    javier = accounts(data_dir)['usr-javier']
+    assert (javier['bloqueado'], javier['activo']) == (False, False)
+    user.find(marker='role-usr-ana').click()
+    user.find('Gerente').click()  # le retira los permisos de administración
+    await user.should_see('Perfil actualizado.')
+    assert accounts(data_dir)['usr-ana']['rol'] == 'gerente'
+
+
+async def test_the_login_offers_the_superadmin_demo_account(user: User) -> None:
+    await user.open('/login')
+    user.find('Superadministrador (elena.navarro@lumina.es)').click()
+    user.find('Entrar').click()
+    await user.should_see('Dashboard · Superadministración', retries=LOGIN_RETRIES)
 
 
 async def test_una_solicitud_desactivada_muestra_su_estado_real(user: User, data_dir: Path) -> None:

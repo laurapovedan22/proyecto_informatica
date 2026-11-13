@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 import sys
+from collections.abc import Callable
 from pathlib import Path
 from typing import Any, ClassVar
 
 from nicegui import app, ui
+from nicegui.timer import Timer
 
 from .controllers import Services
 from .repositories import Repositories
@@ -18,6 +21,55 @@ from .views.pages import PROTECTED_PAGES, PUBLIC_PAGES
 from .views.routes import Route
 
 log = logging.getLogger(__name__)
+
+
+class BackgroundCycle:
+    """Tarea periódica del servidor: se ejecuta en un hilo, nunca se solapa y al cerrar se espera.
+
+    Así una escritura en disco no bloquea el bucle de eventos de la interfaz, y un fallo en un ciclo
+    solo se registra: el siguiente lo vuelve a intentar.
+    """
+
+    def __init__(self, name: str, job: Callable[[], object]) -> None:
+        self._name = name
+        self._job = job
+        self._timer: Timer | None = None
+        self._task: asyncio.Task[object] | None = None
+        self._closing = False
+
+    @property
+    def started(self) -> bool:
+        return self._timer is not None
+
+    def start(self, interval: float, *, immediate: bool = False) -> None:
+        """Programa el ciclo cada ``interval`` segundos (una sola vez, aunque se llame de nuevo)."""
+        if self._timer is None:
+            self._timer = app.timer(interval, self.run, immediate=immediate)
+            app.on_shutdown(self.stop)
+
+    async def run(self) -> None:
+        if self._closing or self._task is not None:
+            return
+        task = asyncio.create_task(asyncio.to_thread(self._job))
+        self._task = task
+        try:
+            await asyncio.shield(task)
+        except Exception:
+            log.exception('No se ha podido completar el ciclo de %s', self._name)
+        finally:
+            if task.done():
+                self._task = None
+
+    async def stop(self) -> None:
+        """Impide nuevos ciclos y espera al que esté en curso antes de cerrar el servidor."""
+        self._closing = True
+        if self._timer is not None:
+            self._timer.cancel()
+        if self._task is not None:
+            try:
+                await asyncio.shield(self._task)
+            except Exception:
+                log.exception('No se ha podido completar el último ciclo de %s', self._name)
 
 
 class LuminaApp:
@@ -59,10 +111,18 @@ class LuminaApp:
     def __init__(self, settings: AppSettings, *, services: Services | None = None) -> None:
         self._settings = settings
         self._services = services or Services.create(Repositories.from_json_dir(settings.data_dir))
+        self._simulation = BackgroundCycle(
+            'simulación de sensores', lambda: self._services.simulation.step(settings.refresh_seconds)
+        )
 
     @property
     def services(self) -> Services:
         return self._services
+
+    @property
+    def simulates(self) -> bool:
+        """Datos en vivo: hace falta la simulación activada y un intervalo de refresco."""
+        return self._settings.simulation and self._settings.refresh_seconds > 0
 
     @property
     def reloads(self) -> bool:
@@ -80,6 +140,9 @@ class LuminaApp:
             router.add_public(public_page)
         for protected_page in PROTECTED_PAGES:
             router.add_protected(protected_page)
+        if self.simulates:
+            # Una primera lectura al arrancar: las pantallas ya abren con datos de ahora mismo.
+            self._simulation.start(self._settings.refresh_seconds, immediate=True)
 
     def run(self) -> None:
         """Configura la aplicación y la abre en una ventana de escritorio (o en el navegador)."""

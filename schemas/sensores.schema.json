@@ -119,7 +119,7 @@
             "string",
             "null"
           ],
-          "description": "URL de una imagen o de un flujo MJPEG. null = se muestra un marcador."
+          "description": "URL de un vídeo (.mp4, .webm, .ogv, .mov…), que se reproduce en bucle y sin sonido como señal en directo, o de una imagen o flujo MJPEG. null = vista simulada."
         },
         "estado": {
           "enum": [

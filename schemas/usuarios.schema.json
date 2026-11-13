@@ -54,12 +54,13 @@
         },
         "rol": {
           "enum": [
+            "superadmin",
             "admin",
             "seguridad",
             "gerente",
             null
           ],
-          "description": "Perfil de acceso. null = solicitud de cuenta pendiente de que el administrador le asigne uno."
+          "description": "Perfil de acceso. null = solicitud de cuenta pendiente de que el administrador le asigne uno. Solo el superadministrador gestiona las cuentas de administración (los administradores no se modifican entre sí); «superadmin» no se asigna desde la aplicación."
         },
         "activo": {
           "type": "boolean",
@@ -96,7 +97,7 @@
         "bloqueado": {
           "type": "boolean",
           "default": false,
-          "description": "true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee."
+          "description": "true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee (las cuentas de administración, el superadministrador)."
         }
       }
     }

@@ -18,13 +18,16 @@ class Permission(StrEnum):
     MANAGE_ALERTS = 'gestionar_alertas'
     CONTROL_ACTUATORS = 'controlar_actuadores'
     MANAGE_USERS = 'gestionar_usuarios'
+    MANAGE_ADMINS = 'gestionar_administradores'
+    """Gestionar las cuentas de administración: perfil, datos, activación y desbloqueo."""
     VIEW_ACTIVITY = 'ver_registros'
     CONFIGURE_SYSTEM = 'configurar_sistema'
 
 
 class Role(StrEnum):
-    """Perfiles de usuario de Lumina."""
+    """Perfiles de usuario de Lumina, del que más permisos tiene al que menos."""
 
+    SUPERADMIN = 'superadmin'
     ADMIN = 'admin'
     SECURITY = 'seguridad'
     MANAGER = 'gerente'
@@ -46,20 +49,39 @@ class Role(StrEnum):
     def can(self, permission: Permission) -> bool:
         return permission in self.permissions
 
+    def can_manage(self, role: Role | None) -> bool:
+        """Si este perfil puede gestionar las cuentas con ``role`` y asignar ese perfil (``None``: solicitud).
+
+        Los administradores gestionan seguridad, gerencia y solicitudes, pero no a otros
+        administradores: eso corresponde al superadministrador. El perfil de superadministrador
+        no lo gestiona ni lo asigna nadie desde la aplicación.
+        """
+        if not self.can(Permission.MANAGE_USERS) or role is Role.SUPERADMIN:
+            return False
+        return role is not Role.ADMIN or self.can(Permission.MANAGE_ADMINS)
+
+    @property
+    def assignable_roles(self) -> tuple[Role, ...]:
+        """Perfiles que puede asignar, de menos a más permisos (el orden de los desplegables)."""
+        return tuple(role for role in (Role.MANAGER, Role.SECURITY, Role.ADMIN) if self.can_manage(role))
+
 
 _ROLE_LABELS: dict[Role, str] = {
+    Role.SUPERADMIN: 'Superadministrador',
     Role.ADMIN: 'Administrador',
     Role.SECURITY: 'Personal de seguridad',
     Role.MANAGER: 'Gerente',
 }
 
 _ROLE_SHORT_LABELS: dict[Role, str] = {
+    Role.SUPERADMIN: 'Superadministración',
     Role.ADMIN: 'Administración',
     Role.SECURITY: 'Seguridad',
     Role.MANAGER: 'Gerente',
 }
 
-# El gerente solo consulta; seguridad supervisa y actúa; el administrador lo puede todo.
+# El gerente solo consulta; seguridad supervisa y actúa; el administrador lo puede todo salvo
+# gestionar a otros administradores, que es lo único que añade el superadministrador.
 _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
     Role.MANAGER: frozenset({Permission.VIEW_FACILITY, Permission.VIEW_HISTORY}),
     Role.SECURITY: frozenset({
@@ -69,7 +91,8 @@ _ROLE_PERMISSIONS: dict[Role, frozenset[Permission]] = {
         Permission.MANAGE_ALERTS,
         Permission.CONTROL_ACTUATORS,
     }),
-    Role.ADMIN: frozenset(Permission),
+    Role.ADMIN: frozenset(Permission) - {Permission.MANAGE_ADMINS},
+    Role.SUPERADMIN: frozenset(Permission),
 }
 
 

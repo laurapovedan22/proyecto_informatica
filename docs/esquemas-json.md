@@ -18,7 +18,7 @@ la aplicación los cumplen.
 | `actuadores.json` | Estado de ventiladores, LED y alarma | Sprint 3 (H3.2, H3.3) |
 | `alertas.json` | Alertas e incidencias | Sprint 3 (H3.2, H3.4) |
 | `historicos.json` | Serie histórica de lecturas | Sprint 4 (H4.1) |
-| `configuracion.json` | Aforo, plazas, umbrales y zonas | Sprint 3 (H3.1) |
+| `configuracion.json` | Aforo, plazas, umbrales y zonas | Sprint 2 (consulta); Sprint 3 (H3.1, edición) |
 
 ## `usuarios.json`
 
@@ -36,13 +36,13 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 | `nombre` | texto | ✓ | Nombre visible. (máx. 45 caracteres) |
 | `email` | texto | ✓ | Correo de acceso. Único sin distinguir mayúsculas; se guarda en minúsculas. |
 | `password_hash` | texto | ✓ | Hash PBKDF2-SHA256: pbkdf2_sha256$iteraciones$sal$hash (hexadecimal). Nunca la contraseña en claro. |
-| `rol` | `admin` · `seguridad` · `gerente` · null |  | Perfil de acceso. null = solicitud de cuenta pendiente de que el administrador le asigne uno. |
+| `rol` | `superadmin` · `admin` · `seguridad` · `gerente` · null |  | Perfil de acceso. null = solicitud de cuenta pendiente de que el administrador le asigne uno. Solo el superadministrador gestiona las cuentas de administración (los administradores no se modifican entre sí); «superadmin» no se asigna desde la aplicación. |
 | `activo` | booleano |  | false = cuenta desactivada: no puede iniciar sesión. (por defecto `true`) |
 | `conectado` | booleano |  | Sesión abierta. Lo actualiza la aplicación al entrar y al salir. (por defecto `false`) |
 | `creado_en` | fecha ISO 8601 · null |  | Momento del alta o de la solicitud. ISO 8601 en hora local (2026-10-14T14:30:00). |
 | `ultimo_acceso` | fecha ISO 8601 · null |  | Último inicio de sesión. ISO 8601 en hora local (2026-10-14T14:30:00). |
 | `intentos_fallidos` | entero |  | Contraseñas incorrectas seguidas desde el último inicio de sesión correcto o el último desbloqueo. Al llegar a 3, la cuenta se bloquea. (por defecto `0`; ≥ 0) |
-| `bloqueado` | booleano |  | true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee. (por defecto `false`) |
+| `bloqueado` | booleano |  | true = cuenta bloqueada tras 3 contraseñas incorrectas seguidas: no puede iniciar sesión hasta que un administrador la desbloquee (las cuentas de administración, el superadministrador). (por defecto `false`) |
 
 ## `sensores.json`
 
@@ -72,7 +72,7 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 | `id` | texto | ✓ | Identificador único de la cámara. |
 | `nombre` | texto | ✓ | Nombre visible. |
 | `zona` | texto | ✓ | Identificador de una zona de configuracion.json. |
-| `url` | texto · null |  | URL de una imagen o de un flujo MJPEG. null = se muestra un marcador. |
+| `url` | texto · null |  | URL de un vídeo (.mp4, .webm, .ogv, .mov…), que se reproduce en bucle y sin sonido como señal en directo, o de una imagen o flujo MJPEG. null = vista simulada. |
 | `estado` | `activo` · `error` |  | Estado de la cámara. (por defecto `activo`) |
 
 ## `actuadores.json`

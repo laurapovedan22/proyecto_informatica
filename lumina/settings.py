@@ -17,7 +17,7 @@ from pathlib import Path
 APP_NAME = 'Lumina'
 """Nombre que ve el usuario: título de la ventana y avisos."""
 
-APP_EDITION = 'Lumina Sprint 1'
+APP_EDITION = 'Lumina Sprint 2'
 """Nombre de esta entrega: el de su ejecutable y el de su carpeta de datos, para no mezclarlos con
 los de otras versiones de Lumina instaladas en el mismo equipo."""
 
@@ -28,7 +28,13 @@ RESOURCES_DIR = Path(getattr(sys, '_MEIPASS', Path(__file__).resolve().parent.pa
 """Código y recursos de solo lectura: la carpeta del proyecto o, en el ejecutable, la que prepara PyInstaller."""
 
 SAMPLE_DATA_DIR = RESOURCES_DIR / 'data'
-"""Datos de ejemplo. El ejecutable los copia en una carpeta de datos nueva la primera vez."""
+"""Datos de ejemplo. La aplicación nunca los modifica: los copia en su carpeta de datos la primera vez."""
+
+LOCAL_DATA_DIR = Path(__file__).resolve().parent.parent / 'datos-locales'
+"""Carpeta de datos al ejecutar desde el código (``python main.py``): copia de trabajo de ``data/``.
+
+Con los datos en vivo la aplicación escribe continuamente; así ``data/`` conserva los datos de
+ejemplo intactos para los tests, el ejecutable y las demostraciones repetibles."""
 
 
 def user_data_root(environ: Mapping[str, str] | None = None, *, platform: str = sys.platform) -> Path:
@@ -50,8 +56,8 @@ def user_data_root(environ: Mapping[str, str] | None = None, *, platform: str = 
 class AppSettings:
     """Configuración del arranque. Cada campo puede sobrescribirse con una variable ``LUMINA_*``."""
 
-    data_dir: Path = user_data_root() / 'data' if FROZEN else SAMPLE_DATA_DIR
-    """Carpeta con los JSON: ``data/`` del proyecto o, en el ejecutable, la de los datos del usuario."""
+    data_dir: Path = user_data_root() / 'data' if FROZEN else LOCAL_DATA_DIR
+    """Carpeta con los JSON: ``datos-locales/`` del proyecto o, en el ejecutable, la de los datos del usuario."""
     assets_dir: Path = RESOURCES_DIR / 'assets'
     native: bool = True
     """Abre Lumina en una ventana de escritorio propia; ``False`` la sirve al navegador."""
@@ -68,6 +74,10 @@ class AppSettings:
     """``None`` sigue el modo claro/oscuro del sistema operativo."""
     refresh_seconds: float = 5.0
     """Cada cuánto se releen los JSON para refrescar la interfaz (0 lo desactiva)."""
+    simulation: bool = True
+    """Datos en vivo: en cada refresco la aplicación simula nuevas lecturas de los sensores que no
+    escriba otra fuente (la maqueta IoT o ``scripts/simular_sensores.py``). ``False`` muestra solo lo
+    que haya en los JSON."""
     demo_mode: bool = True
     """Muestra las cuentas de demostración en la pantalla de inicio de sesión."""
 
@@ -87,6 +97,7 @@ class AppSettings:
             open_browser=env.flag('LUMINA_OPEN_BROWSER', defaults.open_browser),
             dark_mode=env.optional_flag('LUMINA_DARK_MODE', defaults.dark_mode),
             refresh_seconds=env.number('LUMINA_REFRESH_SECONDS', defaults.refresh_seconds),
+            simulation=env.flag('LUMINA_SIMULATION', defaults.simulation),
             demo_mode=env.flag('LUMINA_DEMO_MODE', defaults.demo_mode),
         )
 

@@ -151,7 +151,8 @@ class ProtectedPage(Page):
     def live(self, loader: Callable[[], T], on_change: Callable[[], object]) -> LiveData[T]:
         """Datos que se releen cada ``refresh_seconds`` (si la sesión sigue siendo válida) y refrescan la vista."""
         return LiveData(
-            loader, on_change, self.settings.refresh_seconds, allowed=lambda: self.current_user() is not None
+            loader, on_change, self.settings.refresh_seconds,
+            allowed=lambda: self.current_user() is not None, watch=self.services.clock.today,
         )
 
 
@@ -159,7 +160,8 @@ class LiveData(Generic[T]):
     """Valor obtenido de un controlador que se vuelve a leer periódicamente.
 
     Gracias a ello, si otro proceso modifica los JSON (un simulador o la maqueta IoT), la
-    pantalla se actualiza sola. Solo se redibuja cuando el valor ha cambiado.
+    pantalla se actualiza sola, incluso tras un fallo inicial. Solo se redibuja cuando el
+    valor o la dependencia adicional han cambiado. Sin primera lectura válida, ``value`` es ``None``.
     """
 
     def __init__(
@@ -169,18 +171,28 @@ class LiveData(Generic[T]):
         interval: float,
         *,
         allowed: Callable[[], bool] | None = None,
+        watch: Callable[[], object] | None = None,
     ) -> None:
         self._loader = loader
         self._on_change = on_change
         self._allowed = allowed
+        self._watch = watch
+        self._revision = watch() if watch is not None else None
         self._last_error: str | None = None
-        self.value: T = loader()
+        self.value: T | None = None
         self._timer = ui.timer(interval, self.poll, immediate=False) if interval > 0 else None
+        latest = self._read()
+        if latest is not None:
+            self.value = latest[0]
 
     def poll(self) -> None:
         latest = self._read()
-        if latest is not None and latest[0] != self.value:
+        if latest is None:
+            return
+        revision = self._watch() if self._watch is not None else None
+        if latest[0] != self.value or revision != self._revision:
             self.value = latest[0]
+            self._revision = revision
             self._on_change()
 
     def reload(self) -> None:
@@ -188,6 +200,7 @@ class LiveData(Generic[T]):
         latest = self._read()
         if latest is not None:
             self.value = latest[0]
+            self._revision = self._watch() if self._watch is not None else None
             self._on_change()
 
     def _read(self) -> tuple[T] | None:

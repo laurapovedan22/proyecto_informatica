@@ -1,9 +1,4 @@
-"""Dashboard de cada perfil (H1.2: tras iniciar sesión, cada rol llega a su panel).
-
-En el Sprint 1 el dashboard presenta la cuenta y las funciones de cada perfil, y al
-administrador el estado de las cuentas. Los datos del establecimiento (aforo, temperatura,
-sensores…) se incorporan a partir del Sprint 2.
-"""
+"""Dashboard por rol: cuentas del Sprint 1 e indicadores del establecimiento del Sprint 2."""
 
 from __future__ import annotations
 
@@ -27,6 +22,7 @@ from ..components import (
     Text,
     TwoColumns,
 )
+from ..components.facility import FacilityMetrics, OccupancyPanels, SensorSummary
 from ..formatting import Formatter
 from ..routes import Route
 from ..theme import Theme, ToneName
@@ -51,17 +47,21 @@ class DashboardPage(ProtectedPage):
     route = Route.DASHBOARD
     title = 'Dashboard'
 
-    CURRENT_SPRINT: ClassVar[int] = 1
+    CURRENT_SPRINT: ClassVar[int] = 2
     SUMMARIES: ClassVar[dict[Role, str]] = {
-        Role.ADMIN: 'Gestión de usuarios, permisos y configuración del sistema',
-        Role.SECURITY: 'Vigilancia del establecimiento, alertas y actuadores',
+        Role.SUPERADMIN: 'Gestión de administradores y cuentas, y supervisión del establecimiento',
+        Role.ADMIN: 'Gestión de cuentas y supervisión del establecimiento',
+        Role.SECURITY: 'Supervisión de sensores, cámaras y detecciones por zona',
         Role.MANAGER: 'Indicadores del supermercado y del parking',
     }
     FEATURES: ClassVar[tuple[RoleFeature, ...]] = (
         RoleFeature('Gestionar cuentas, perfiles y solicitudes', Permission.MANAGE_USERS, 1, Route.USERS),
+        RoleFeature(
+            'Gestionar administradores: permisos, cuentas y desbloqueo', Permission.MANAGE_ADMINS, 2, Route.USERS
+        ),
         RoleFeature('Consultar y modificar tu perfil', None, 1, Route.PROFILE),
-        RoleFeature('Supervisar sensores y cámaras', Permission.SUPERVISE, 2),
-        RoleFeature('Consultar aforo, parking, temperatura y humedad', Permission.VIEW_FACILITY, 2),
+        RoleFeature('Supervisar sensores y cámaras', Permission.SUPERVISE, 2, Route.SUPERVISION),
+        RoleFeature('Consultar aforo, parking, temperatura y humedad', Permission.VIEW_FACILITY, 2, Route.DASHBOARD),
         RoleFeature('Consultar y atender alertas', Permission.MANAGE_ALERTS, 3),
         RoleFeature('Controlar ventiladores, LED y alarma', Permission.CONTROL_ACTUATORS, 3),
         RoleFeature('Configurar umbrales y zonas restringidas', Permission.CONFIGURE_SYSTEM, 3),
@@ -74,8 +74,13 @@ class DashboardPage(ProtectedPage):
         self._account = self.live(lambda: self.services.users.get(self.user.id), self._refresh_user)
         PageHeader(f'Dashboard · {self.role.short_label}', self.SUMMARIES[self.role])
         if self.user.can(Permission.MANAGE_USERS):
-            self._counts: LiveData[UserCounts] = self.live(self.services.users.counts, self._accounts.refresh)
+            # Las cuentas bloqueadas que se avisan son las que este usuario puede desbloquear.
+            self._counts: LiveData[UserCounts] = self.live(
+                lambda: self.services.users.counts(self.user), self._accounts.refresh
+            )
             self._accounts()
+        self._facility = self.live(self.services.facility.status, self._facility_panel.refresh)
+        self._facility_panel()
         with TwoColumns():
             self._account_panel()
             self._features_panel()
@@ -85,6 +90,8 @@ class DashboardPage(ProtectedPage):
     @ui.refreshable_method
     def _accounts(self) -> None:
         counts = self._counts.value
+        if counts is None:
+            return
         if counts.pending:
             requests = Formatter.plural(
                 counts.pending, 'solicitud de cuenta pendiente', 'solicitudes de cuenta pendientes'
@@ -114,8 +121,24 @@ class DashboardPage(ProtectedPage):
 
     # --- Todos los perfiles --------------------------------------------------------------------
 
+    @ui.refreshable_method
+    def _facility_panel(self) -> None:
+        status = self._facility.value
+        if status is None:
+            return
+        today = self.services.clock.today()
+        Text(f'Última lectura: {Formatter.moment(status.last_reading_at, today)}',
+             tag='p', classes=Theme.READING_NOTE)
+        FacilityMetrics(status, today)
+        OccupancyPanels(status)
+        if self.user.can(Permission.SUPERVISE):
+            SensorSummary(status.sensors)
+
     def _refresh_user(self) -> None:
-        self.user = self._account.value
+        latest = self._account.value
+        if latest is None:
+            return
+        self.user = latest
         self.shell.show_user(self.user)
         self._account_panel.refresh()
 
@@ -141,7 +164,10 @@ class DashboardPage(ProtectedPage):
                 row = DefinitionRow(feature.label)
                 with row.trailing:
                     if feature.sprint <= self.CURRENT_SPRINT and feature.route is not None:
-                        Button('Abrir', variant=ButtonVariant.LINK, href=feature.route)
+                        if feature.route != self.route:
+                            Button('Abrir', variant=ButtonVariant.LINK, href=feature.route)
+                        else:
+                            StatusText('Disponible en este panel', tone=ToneName.MUTED, classes=Theme.SMALL)
                     else:
                         StatusText(f'Sprint {feature.sprint}', tone=ToneName.MUTED, classes=Theme.SMALL)
             Text(

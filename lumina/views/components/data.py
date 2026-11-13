@@ -7,8 +7,24 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 
+from ..formatting import Formatter
 from ..theme import Theme
 from .base import Box, Text
+
+
+class ProgressMeter(Box):
+    """Barra accesible de ocupación, limitada entre cero y el máximo."""
+
+    def __init__(self, value: float, maximum: float, *, label: str) -> None:
+        super().__init__(Theme.PROGRESS_TRACK)
+        bounded = min(max(value, 0), max(maximum, 0))
+        self.props['role'] = 'meter'
+        self.props['aria-label'] = label
+        self.props['aria-valuemin'] = '0'
+        self.props['aria-valuemax'] = Formatter.number(max(maximum, 0))
+        self.props['aria-valuenow'] = Formatter.number(bounded)
+        with self:
+            Box(Theme.PROGRESS_FILL).style(Theme.progress_width(bounded / maximum if maximum > 0 else 0))
 
 
 class TableRow(Box):

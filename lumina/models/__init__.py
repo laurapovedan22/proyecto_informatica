@@ -12,7 +12,17 @@ from .enums import (
     SensorStatus,
     SensorType,
 )
-from .status import UserCounts
+from .status import (
+    CameraFeed,
+    CapacityStatus,
+    ClimateStatus,
+    FacilityStatus,
+    SensorHealth,
+    SensorState,
+    SupervisionSnapshot,
+    UserCounts,
+    ZoneMotion,
+)
 
 __all__ = [
     'Actuator',
@@ -22,15 +32,23 @@ __all__ = [
     'AlertStatus',
     'AlertType',
     'Camera',
+    'CameraFeed',
+    'CapacityStatus',
+    'ClimateStatus',
+    'FacilityStatus',
     'Metric',
     'Permission',
     'Reading',
     'Role',
     'Sensor',
+    'SensorHealth',
+    'SensorState',
     'SensorStatus',
     'SensorType',
+    'SupervisionSnapshot',
     'SystemConfig',
     'User',
     'UserCounts',
     'Zone',
+    'ZoneMotion',
 ]

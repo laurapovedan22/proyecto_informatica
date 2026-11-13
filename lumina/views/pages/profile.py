@@ -47,6 +47,8 @@ class ProfilePage(ProtectedPage):
 
     def _refresh_profile(self) -> None:
         latest = self._profile.value
+        if latest is None:
+            return
         # Conserva lo que el usuario esté escribiendo; refresca solo los campos sin editar.
         if self._name.value == self.user.name:
             self._name.input.set_value(latest.name)

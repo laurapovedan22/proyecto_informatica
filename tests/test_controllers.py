@@ -16,7 +16,7 @@ from lumina.controllers import (
     Services,
     ValidationError,
 )
-from lumina.models import Role, User
+from lumina.models import Permission, Role, User
 from lumina.repositories import Repositories
 
 
@@ -282,7 +282,7 @@ def test_admin_cannot_change_their_own_account_from_the_list(services: Services,
         services.users.set_active(admin.id, False, admin)
     with pytest.raises(ValidationError, match='tu propia cuenta'):
         services.users.update_account(admin.id, 'Otra', 'otra@lumina.es', admin)
-    with pytest.raises(ValidationError, match='tu propia cuenta'):  # otro administrador debe desbloquearla
+    with pytest.raises(ValidationError, match='tu propia cuenta'):  # el superadministrador debe desbloquearla
         services.users.unlock(admin.id, admin)
 
 
@@ -301,7 +301,7 @@ def test_only_admins_manage_users(services: Services, security: User, manager: U
 
 
 def test_a_demoted_admin_cannot_keep_editing(services: Services, repositories: Repositories, admin: User) -> None:
-    repositories.users.update(admin.with_role(Role.MANAGER))  # otro administrador lo acaba de degradar
+    repositories.users.update(admin.with_role(Role.MANAGER))  # el superadministrador lo acaba de degradar
     with pytest.raises(PermissionDeniedError):
         services.users.update_account('usr-marta', 'Marta', 'marta@lumina.es', admin)  # con su copia antigua
     assert stored(repositories, 'usr-marta').email == 'marta.garcia@lumina.es'
@@ -312,7 +312,7 @@ def test_an_admin_demoted_while_creating_a_user_cannot_finish(
 ) -> None:
     hasher.meanwhile = lambda: repositories.users.update(admin.with_role(Role.MANAGER))
     with pytest.raises(PermissionDeniedError):
-        racing_services.users.create('Lucía Fernández', 'lucia@lumina.es', Role.ADMIN, admin)
+        racing_services.users.create('Lucía Fernández', 'lucia@lumina.es', Role.SECURITY, admin)
     assert repositories.users.find_by_email('lucia@lumina.es') is None
 
 
@@ -327,7 +327,131 @@ def test_account_counts(services: Services, repositories: Repositories, admin: U
     services.users.set_active('usr-marta', False, admin)
     lock(repositories, 'usr-carlos')
     counts = services.users.counts()
-    assert (counts.total, counts.connected, counts.pending, counts.inactive, counts.locked) == (4, 1, 1, 1, 1)
+    assert (counts.total, counts.connected, counts.pending, counts.inactive, counts.locked) == (6, 1, 1, 1, 1)
+
+
+# --- Superadministrador: los administradores no se modifican entre sí --------------------------
+
+
+@pytest.fixture
+def superadmin(repositories: Repositories) -> User:
+    return stored(repositories, 'usr-elena')
+
+
+def test_superadmin_signs_in_with_every_permission(services: Services) -> None:
+    user = services.auth.login('elena.navarro@lumina.es', 'superadmin123')
+    assert user.role is Role.SUPERADMIN and all(user.can(permission) for permission in Permission)
+    assert Role.ADMIN.permissions == frozenset(Permission) - {Permission.MANAGE_ADMINS}
+    assert Role.SUPERADMIN.assignable_roles == (Role.MANAGER, Role.SECURITY, Role.ADMIN)
+    assert Role.ADMIN.assignable_roles == (Role.MANAGER, Role.SECURITY)
+    assert Role.SECURITY.assignable_roles == () == Role.MANAGER.assignable_roles
+
+
+def test_admins_cannot_modify_other_admins(services: Services, repositories: Repositories, admin: User) -> None:
+    lock(repositories, 'usr-javier')
+    before = repositories.users.list_all()
+    message = 'Solo el superadministrador puede modificar las cuentas de administración'
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.change_role('usr-javier', Role.MANAGER, admin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.set_active('usr-javier', False, admin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.update_account('usr-javier', 'Javier', 'javier@lumina.es', admin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.unlock('usr-javier', admin)
+    assert repositories.users.list_all() == before
+
+
+def test_nobody_modifies_the_superadmin_from_the_list(
+    services: Services, repositories: Repositories, admin: User, superadmin: User
+) -> None:
+    before = repositories.users.list_all()
+    actions: list[Callable[[], object]] = [
+        lambda: services.users.set_active('usr-elena', False, admin),
+        lambda: services.users.change_role('usr-elena', Role.MANAGER, admin),
+        lambda: services.users.unlock('usr-elena', admin),
+    ]
+    for action in actions:
+        with pytest.raises(PermissionDeniedError, match='cuenta del superadministrador no se puede modificar'):
+            action()
+    with pytest.raises(ValidationError, match='tu propia cuenta'):
+        services.users.set_active('usr-elena', False, superadmin)
+    assert repositories.users.list_all() == before
+
+
+def test_only_the_superadmin_grants_the_admin_role(
+    services: Services, repositories: Repositories, admin: User, superadmin: User
+) -> None:
+    request = services.auth.register('Lucía Fernández', 'lucia@lumina.es', 'secreta1', 'secreta1')
+    message = 'Solo el superadministrador puede asignar el perfil de administrador'
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.change_role(request.id, Role.ADMIN, admin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.change_role('usr-marta', Role.ADMIN, admin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.create('Pedro Gil', 'pedro@lumina.es', Role.ADMIN, admin)
+    assert stored(repositories, request.id).role is None
+    assert stored(repositories, 'usr-marta').role is Role.MANAGER
+    assert repositories.users.find_by_email('pedro@lumina.es') is None
+
+    assert services.users.change_role(request.id, Role.ADMIN, superadmin).role is Role.ADMIN
+    created = services.users.create('Pedro Gil', 'pedro@lumina.es', Role.ADMIN, superadmin).user
+    assert created.role is Role.ADMIN
+    with pytest.raises(PermissionDeniedError, match='Solo el superadministrador'):  # tampoco toca a los demás
+        services.users.set_active('usr-ana', False, created)
+
+
+def test_the_superadmin_role_is_never_assigned(services: Services, admin: User, superadmin: User) -> None:
+    message = 'perfil de superadministrador no se puede asignar'
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.change_role('usr-ana', Role.SUPERADMIN, superadmin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.create('Pedro Gil', 'pedro@lumina.es', Role.SUPERADMIN, superadmin)
+    with pytest.raises(PermissionDeniedError, match=message):
+        services.users.change_role('usr-marta', Role.SUPERADMIN, admin)
+
+
+def test_the_superadmin_manages_admin_accounts(
+    services: Services, repositories: Repositories, superadmin: User
+) -> None:
+    lock(repositories, 'usr-ana')
+    assert not services.users.unlock('usr-ana', superadmin).locked
+    edited = services.users.update_account('usr-javier', 'Javier Moreno Gil', 'javier.moreno@lumina.es', superadmin)
+    assert edited.name == 'Javier Moreno Gil'
+    services.users.set_active('usr-javier', False, superadmin)  # cierra su cuenta
+    with pytest.raises(AuthenticationError, match='desactivada'):
+        services.auth.login('javier.moreno@lumina.es', 'admin123')
+    demoted = services.users.change_role('usr-ana', Role.SECURITY, superadmin)  # le retira los permisos
+    assert demoted.role is Role.SECURITY and not demoted.can(Permission.MANAGE_USERS)
+    with pytest.raises(PermissionDeniedError):
+        services.users.set_active('usr-marta', False, demoted)
+
+
+def test_the_hierarchy_uses_the_current_accounts(services: Services, repositories: Repositories, admin: User) -> None:
+    """Una cuenta ascendida a administración mientras tanto deja de poder modificarse con la copia antigua."""
+    repositories.users.update(stored(repositories, 'usr-marta').with_role(Role.ADMIN))
+    with pytest.raises(PermissionDeniedError, match='Solo el superadministrador'):
+        services.users.set_active('usr-marta', False, admin)
+    assert stored(repositories, 'usr-marta').active
+
+
+def test_two_superadmins_cannot_modify_each_other(
+    services: Services, repositories: Repositories, superadmin: User
+) -> None:
+    repositories.users.update(stored(repositories, 'usr-javier').with_role(Role.SUPERADMIN))
+    with pytest.raises(PermissionDeniedError, match='cuenta del superadministrador'):
+        services.users.set_active('usr-javier', False, superadmin)
+    assert stored(repositories, 'usr-javier').active
+
+
+def test_counts_only_warn_about_accounts_the_viewer_can_unlock(
+    services: Services, repositories: Repositories, admin: User, superadmin: User
+) -> None:
+    lock(repositories, 'usr-javier')
+    lock(repositories, 'usr-marta')
+    assert services.users.counts().locked == 2
+    assert services.users.counts(admin).locked == 1  # la de Javier solo la desbloquea el superadministrador
+    assert services.users.counts(superadmin).locked == 2
 
 
 # --- H1.4 · Perfil propio --------------------------------------------------------------------

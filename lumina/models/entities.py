@@ -61,6 +61,14 @@ class User:
     def can(self, permission: Permission) -> bool:
         return self.role is not None and self.role.can(permission)
 
+    def can_manage(self, other: User) -> bool:
+        """Puede cambiar la cuenta ``other`` desde «Usuarios»: nunca la propia ni una de su rango o superior.
+
+        Así los administradores no se pueden modificar entre sí; solo el superadministrador
+        gestiona sus cuentas (ver :meth:`Role.can_manage`).
+        """
+        return self.role is not None and self.id != other.id and self.role.can_manage(other.role)
+
     def signed_in(self, at: datetime) -> User:
         return replace(self, connected=True, last_login_at=at, failed_attempts=0)
 

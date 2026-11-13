@@ -1,10 +1,10 @@
-"""Lumina: plataforma de supervisión IoT para un supermercado y su parking (entrega del Sprint 1).
+"""Lumina: plataforma de supervisión IoT para un supermercado y su parking (entrega del Sprint 2).
 
 El paquete sigue el patrón Modelo-Vista-Controlador descrito en el anteproyecto:
 
 - ``lumina.models``: entidades del dominio y variables virtuales (sin dependencias de E/S).
 - ``lumina.repositories``: acceso a datos. En la fase 1 se usan ficheros JSON.
-- ``lumina.controllers``: lógica de negocio (en el Sprint 1, autenticación y gestión de usuarios).
+- ``lumina.controllers``: lógica de negocio (en el Sprint 2, acceso, usuarios y supervisión del establecimiento).
 - ``lumina.views``: interfaz gráfica construida únicamente con la API Python de NiceGUI.
 """
 

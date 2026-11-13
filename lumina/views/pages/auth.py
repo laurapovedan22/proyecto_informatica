@@ -22,6 +22,7 @@ class LoginPage(PublicPage):
     title = 'Iniciar sesión'
 
     DEMO_ACCOUNTS: ClassVar[tuple[tuple[str, str, str], ...]] = (
+        ('Superadministrador', 'elena.navarro@lumina.es', 'superadmin123'),
         ('Administrador', 'ana.lopez@lumina.es', 'admin123'),
         ('Seguridad', 'carlos.ruiz@lumina.es', 'seguridad123'),
         ('Gerente', 'marta.garcia@lumina.es', 'gerente123'),

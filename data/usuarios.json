@@ -1,6 +1,19 @@
 {
   "usuarios": [
     {
+      "id": "usr-elena",
+      "nombre": "Elena Navarro",
+      "email": "elena.navarro@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$1f8c515e126115d18265351ee57b9447$5b12e8e680e608d10e9775f4a7dd00b4979b05f4dc7bbcaec040795c43594c78",
+      "rol": "superadmin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-01T08:30:00",
+      "ultimo_acceso": "2026-10-14T09:10:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
       "id": "usr-ana",
       "nombre": "Ana López",
       "email": "ana.lopez@lumina.es",
@@ -10,6 +23,19 @@
       "conectado": false,
       "creado_en": "2026-09-01T09:00:00",
       "ultimo_acceso": "2026-10-14T14:28:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
+      "id": "usr-javier",
+      "nombre": "Javier Moreno",
+      "email": "javier.moreno@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$ce5ac4542c745dc818ed300f7bde9f68$13bfa91c405d49673b9b0b7fbcdb9e373bd5546941b4e9891f7d0ee0e209f317",
+      "rol": "admin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-03T11:15:00",
+      "ultimo_acceso": "2026-10-13T17:20:00",
       "intentos_fallidos": 0,
       "bloqueado": false
     },

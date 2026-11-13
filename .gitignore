@@ -18,6 +18,9 @@ dist/
 data/*.tmp
 data/.lumina.lock
 
+# Copia de trabajo de data/ al ejecutar desde el código (la aplicación escribe en ella)
+datos-locales/
+
 # Sistema operativo / IDE
 .DS_Store
 .vscode/

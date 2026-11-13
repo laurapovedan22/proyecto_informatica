@@ -2,7 +2,7 @@
 
 Uso, desde la carpeta del proyecto y con las dependencias de ``requirements-dev.txt``::
 
-    python scripts/empaquetar.py               # macOS: «dist/Lumina Sprint 1.app» · Windows: carpeta en dist/
+    python scripts/empaquetar.py               # macOS: «dist/Lumina Sprint 2.app» · Windows: carpeta en dist/
     python scripts/empaquetar.py --un-fichero  # Windows/Linux: un único ejecutable (arranca más despacio)
 
 PyInstaller crea el ejecutable del sistema y la arquitectura en los que se ejecuta: para
@@ -38,7 +38,7 @@ from lumina import __version__
 from lumina.settings import APP_EDITION
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BUNDLE_IDENTIFIER = 'es.lumina.sprint1'
+BUNDLE_IDENTIFIER = 'es.lumina.sprint2'
 
 
 class AppIcon:

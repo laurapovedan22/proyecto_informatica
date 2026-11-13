@@ -14,7 +14,7 @@ from lumina.repositories import DataFormatError, JsonFile, Record, Repositories
 
 
 def test_sample_data_loads(repositories: Repositories) -> None:
-    assert len(repositories.users.list_all()) == 3
+    assert len(repositories.users.list_all()) == 5  # superadministradora, dos administradores, seguridad y gerente
     assert {sensor.type for sensor in repositories.sensors.list_all()} >= {
         SensorType.TEMPERATURE, SensorType.HUMIDITY, SensorType.MOTION, SensorType.PEOPLE_COUNTER,
     }

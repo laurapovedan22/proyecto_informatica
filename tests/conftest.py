@@ -34,6 +34,7 @@ def lumina_environment(monkeypatch: pytest.MonkeyPatch, data_dir: Path, tmp_path
     """
     monkeypatch.setenv('LUMINA_DATA_DIR', str(data_dir))
     monkeypatch.setenv('LUMINA_REFRESH_SECONDS', '0')
+    monkeypatch.setenv('LUMINA_SIMULATION', 'false')  # los tests parten de los datos de ejemplo, sin simular
     monkeypatch.setenv('LUMINA_RELOAD', 'false')
     monkeypatch.setenv('LUMINA_OPEN_BROWSER', 'false')
     monkeypatch.setenv('LUMINA_STORAGE_SECRET', 'secreto-de-pruebas')

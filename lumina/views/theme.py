@@ -100,7 +100,7 @@ class Theme:
     METRIC_GRID = 'grid grid-cols-2 gap-3 mb-[22px] w-full'
     METRIC_COLUMNS: ClassVar[dict[int, str]] = {3: 'md:grid-cols-3', 4: 'md:grid-cols-4'}
     METRIC_CARD = f'border {Palette.LINE.border} rounded px-3 py-3.5 min-w-0'
-    METRIC_VALUE = 'block text-2xl leading-tight mt-[5px] mb-px whitespace-nowrap tabular-nums'
+    METRIC_VALUE = 'block text-xl sm:text-2xl leading-tight mt-[5px] mb-px whitespace-normal break-words tabular-nums'
     ALERT_BANNER = (
         f'w-full flex flex-wrap items-center justify-between gap-3 rounded px-3.5 py-3 mb-[22px] '
         f'{Palette.WARN.bg} {Palette.WARN_TEXT.text}'
@@ -109,6 +109,29 @@ class Theme:
     DEFINITION_ROW = f'flex items-center justify-between gap-3 py-2.5 border-b last:border-b-0 {Palette.LINE.border}'
     BUTTON_ROW = 'flex flex-wrap items-center gap-2'
     NOTE = f'mt-3 text-xs {Palette.MUTED.text}'
+    READING_NOTE = f'mb-4 text-xs {Palette.MUTED.text}'
+    OCCUPANCY_VALUE = 'font-medium mr-2'
+    PROGRESS_TRACK = f'w-full h-2 my-3 {Palette.SOFT.bg}'
+    PROGRESS_FILL = f'h-full {Palette.GREEN.bg}'
+    CAMERA_GRID = 'grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5 w-full'
+    CAMERA_VIEW = (
+        f'relative w-full aspect-video overflow-hidden grid content-center justify-items-center gap-1.5 '
+        f'border border-dashed {Palette.LINE.border} {Palette.SOFT.bg} {Palette.MUTED.text}'
+    )
+    CAMERA_SCREEN = 'relative w-full aspect-video overflow-hidden rounded-sm bg-[#101210]'
+    """Monitor de una cámara con vídeo: fondo oscuro mientras carga, como un videovigilante."""
+    CAMERA_IMAGE = 'absolute inset-0 w-full h-full object-cover'
+    CAMERA_OVERLAY = 'absolute top-1.5 left-2 px-1.5 rounded text-xs bg-black/55 text-white'
+    CAMERA_LABEL = 'absolute top-2 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-black/65 text-white'
+    CAMERA_LIVE_DOT = 'inline-block w-2 h-2 rounded-full bg-[#e5484d] animate-pulse'
+    CAMERA_CLOCK = 'absolute bottom-2 right-2 px-2 py-0.5 rounded text-xs font-mono tabular-nums bg-black/65 text-white'
+    CAMERA_NO_SIGNAL = 'absolute inset-0 grid content-center justify-items-center gap-1 bg-[#101210] text-white/80'
+    CAMERA_CAPTION = 'mt-1.5 text-xs'
+
+    @staticmethod
+    def progress_width(ratio: float) -> str:
+        """Ancho dinámico de una barra, limitado al espacio disponible."""
+        return f'width: {min(max(ratio, 0.0), 1.0) * 100:.2f}%'
 
     # Tablas -----------------------------------------------------------------------------------
     TABLE_WRAPPER = 'w-full overflow-x-auto'

@@ -87,14 +87,14 @@
       "id": "cam-almacen",
       "nombre": "Cámara 1 · Almacén",
       "zona": "almacen",
-      "url": null,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/7/77/HD_CCTV_Camera_video_3MP_4MP_iProx_CCTV_HDCCTVCameras.net_retail_store.webm/HD_CCTV_Camera_video_3MP_4MP_iProx_CCTV_HDCCTVCameras.net_retail_store.webm.480p.vp9.webm",
       "estado": "activo"
     },
     {
       "id": "cam-parking",
       "nombre": "Cámara 2 · Parking",
       "zona": "parking",
-      "url": null,
+      "url": "https://upload.wikimedia.org/wikipedia/commons/transcoded/1/14/BLK-HDPTZ12_Security_Camera_Parking_Lot_Surveillance_Video.webm/BLK-HDPTZ12_Security_Camera_Parking_Lot_Surveillance_Video.webm.480p.vp9.webm",
       "estado": "activo"
     }
   ]

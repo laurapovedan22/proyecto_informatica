@@ -21,7 +21,13 @@ class NewUserCredentials:
 
 
 class UserController:
-    """Altas, edición, perfiles y estado de las cuentas."""
+    """Altas, edición, perfiles y estado de las cuentas.
+
+    Jerarquía: cada cuenta con permiso de gestión solo modifica cuentas de rango inferior al
+    suyo y solo asigna perfiles inferiores. Los administradores no se pueden modificar entre sí
+    ni dar de alta administradores; eso lo hace el superadministrador, cuya cuenta no se
+    modifica desde la gestión de usuarios (ver :meth:`Role.can_manage`).
+    """
 
     def __init__(self, users: UserRepository, hasher: PasswordHasher, clock: Clock) -> None:
         self._users = users
@@ -34,14 +40,18 @@ class UserController:
         """Solicitudes pendientes primero; después, por orden alfabético."""
         return sorted(self._users.list_all(), key=lambda user: (not user.is_pending, user.name.casefold()))
 
-    def counts(self) -> UserCounts:
+    def counts(self, viewer: User | None = None) -> UserCounts:
+        """Contadores del panel.
+
+        Con ``viewer``, ``locked`` cuenta solo las cuentas bloqueadas que ese usuario puede desbloquear.
+        """
         users = self._users.list_all()
         return UserCounts(
             total=len(users),
             connected=sum(1 for user in users if user.connected),
             pending=sum(1 for user in users if user.is_pending),
             inactive=sum(1 for user in users if not user.active),
-            locked=sum(1 for user in users if user.locked),
+            locked=sum(1 for user in users if user.locked and (viewer is None or viewer.can_manage(user))),
         )
 
     def get(self, user_id: str) -> User:
@@ -50,10 +60,11 @@ class UserController:
             raise NotFoundError('El usuario ya no existe.')
         return user
 
-    # --- Administración (solo administrador) ------------------------------------------------
+    # --- Administración (administrador y superadministrador) --------------------------------
 
     def create(self, name: str, email: str, role: Role, actor: User) -> NewUserCredentials:
         PermissionDeniedError.require(actor, Permission.MANAGE_USERS)
+        self._require_assignable(actor, role)
         clean_name = UserInputValidator.name(name)
         clean_email = UserInputValidator.email(email)
         self._ensure_email_available(clean_email)
@@ -68,10 +79,10 @@ class UserController:
         )
 
         # El hash tarda: al guardar, en la misma transacción, se comprueba de nuevo el correo y que
-        # quien da el alta siga teniendo la cuenta activa y el permiso.
+        # quien da el alta siga teniendo la cuenta activa, el permiso y rango para asignar el perfil.
         def actor_still_allowed(users: list[User]) -> None:
             current = next((item for item in users if item.id == actor.id), None)
-            self._require_actor(current, Permission.MANAGE_USERS)
+            self._require_assignable(self._require_actor(current, Permission.MANAGE_USERS), role)
 
         try:
             self._users.add(user, check=actor_still_allowed)
@@ -86,9 +97,12 @@ class UserController:
         return self._change_account(user_id, actor, self._profile_change(clean_name, clean_email))
 
     def change_role(self, user_id: str, role: Role, actor: User) -> User:
-        """Asigna un perfil; a una solicitud pendiente, aprobarla es asignarle uno."""
+        """Asigna un perfil; a una solicitud pendiente, aprobarla es asignarle uno.
+
+        Solo el superadministrador asigna o retira el perfil de administrador.
+        """
         return self._change_account(
-            user_id, actor, lambda current: current if current.role is role else current.with_role(role)
+            user_id, actor, lambda current: current if current.role is role else current.with_role(role), assigns=role
         )
 
     def set_active(self, user_id: str, active: bool, actor: User) -> User:
@@ -144,14 +158,23 @@ class UserController:
 
         return self._modify(user_id, checked)
 
-    def _change_account(self, user_id: str, actor: User, change: Callable[[User], User]) -> User:
-        """Cambia otra cuenta comprobando, en la misma transacción, que el actor sigue pudiendo hacerlo."""
+    def _change_account(
+        self, user_id: str, actor: User, change: Callable[[User], User], *, assigns: Role | None = None
+    ) -> User:
+        """Cambia otra cuenta comprobando, en la misma transacción, que el actor sigue pudiendo hacerlo.
+
+        Con las versiones vigentes de las dos cuentas se exige también la jerarquía: el actor debe
+        poder gestionar la cuenta tal y como está ahora y, si ``assigns``, asignar ese perfil.
+        """
         PermissionDeniedError.require(actor, Permission.MANAGE_USERS)
         if user_id == actor.id:
             raise ValidationError('No puedes modificar tu propia cuenta desde la gestión de usuarios.')
 
         def checked(current: User) -> User:
-            self._require_actor(self._users.get(actor.id), Permission.MANAGE_USERS)
+            latest_actor = self._require_actor(self._users.get(actor.id), Permission.MANAGE_USERS)
+            self._require_manageable(latest_actor, current)
+            if assigns is not None:
+                self._require_assignable(latest_actor, assigns)
             return change(current)
 
         return self._modify(user_id, checked)
@@ -167,11 +190,34 @@ class UserController:
         return change
 
     @staticmethod
-    def _require_actor(current: User | None, permission: Permission) -> None:
+    def _require_actor(current: User | None, permission: Permission) -> User:
         """Comprueba al actor tal y como está ahora: puede haber perdido la cuenta o el permiso."""
         if current is None or not current.can_sign_in:
             raise PermissionDeniedError('Tu cuenta ya no tiene acceso.')
         PermissionDeniedError.require(current, permission)
+        return current
+
+    @staticmethod
+    def _require_manageable(actor: User, target: User) -> None:
+        """Los administradores no se modifican entre sí; la cuenta del superadministrador, nadie."""
+        if actor.can_manage(target):
+            return
+        if target.role is Role.SUPERADMIN:
+            raise PermissionDeniedError(
+                'La cuenta del superadministrador no se puede modificar desde la gestión de usuarios.'
+            )
+        raise PermissionDeniedError('Solo el superadministrador puede modificar las cuentas de administración.')
+
+    @staticmethod
+    def _require_assignable(actor: User, role: Role) -> None:
+        """Solo se asignan perfiles inferiores al propio: el de administrador, solo el superadministrador."""
+        if actor.role is not None and actor.role.can_manage(role):
+            return
+        if role is Role.SUPERADMIN:
+            raise PermissionDeniedError(
+                'El perfil de superadministrador no se puede asignar desde la gestión de usuarios.'
+            )
+        raise PermissionDeniedError('Solo el superadministrador puede asignar el perfil de administrador.')
 
     def _modify(self, user_id: str, change: Callable[[User], User]) -> User:
         """Aplica ``change`` a la versión actual de la cuenta (ver :meth:`UserRepository.modify`)."""

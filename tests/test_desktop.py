@@ -11,7 +11,7 @@ from pathlib import Path
 import pytest
 
 from lumina.launcher import AlreadyRunningError, DataFolder, InstanceLock, Launcher
-from lumina.settings import SAMPLE_DATA_DIR, AppSettings, user_data_root
+from lumina.settings import LOCAL_DATA_DIR, SAMPLE_DATA_DIR, AppSettings, user_data_root
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 DEVELOPMENT_SECRET = AppSettings().storage_secret
@@ -48,10 +48,10 @@ def test_browser_mode_and_port_can_be_chosen() -> None:
 @pytest.mark.parametrize(
     ('platform', 'environ', 'expected'),
     [
-        ('darwin', {}, '~/Library/Application Support/Lumina Sprint 1'),
-        ('win32', {'APPDATA': '/perfiles/ana/AppData/Roaming'}, '/perfiles/ana/AppData/Roaming/Lumina Sprint 1'),
-        ('linux', {'XDG_DATA_HOME': '/datos'}, '/datos/lumina-sprint-1'),
-        ('linux', {}, '~/.local/share/lumina-sprint-1'),
+        ('darwin', {}, '~/Library/Application Support/Lumina Sprint 2'),
+        ('win32', {'APPDATA': '/perfiles/ana/AppData/Roaming'}, '/perfiles/ana/AppData/Roaming/Lumina Sprint 2'),
+        ('linux', {'XDG_DATA_HOME': '/datos'}, '/datos/lumina-sprint-2'),
+        ('linux', {}, '~/.local/share/lumina-sprint-2'),
     ],
 )
 def test_user_data_folder_follows_each_system(platform: str, environ: dict[str, str], expected: str) -> None:
@@ -104,6 +104,16 @@ def test_an_interrupted_first_copy_is_completed(tmp_path: Path) -> None:
 
 def test_the_sample_folder_is_not_copied_onto_itself() -> None:
     assert not DataFolder(SAMPLE_DATA_DIR).fill_from(SAMPLE_DATA_DIR)
+
+
+def test_running_from_the_code_works_on_a_copy_of_the_sample_data(tmp_path: Path) -> None:
+    """Con los datos en vivo la aplicación escribe sin parar: ``data/`` debe quedar intacta."""
+    assert AppSettings().data_dir == LOCAL_DATA_DIR != SAMPLE_DATA_DIR
+    assert LOCAL_DATA_DIR.parent == PROJECT_ROOT
+    assert 'datos-locales/' in (PROJECT_ROOT / '.gitignore').read_text(encoding='utf-8').splitlines()
+    copy = tmp_path / 'datos-locales'
+    assert DataFolder(copy).fill_from(SAMPLE_DATA_DIR)  # la primera ejecución la rellena
+    assert sorted(path.name for path in copy.glob('*.json')) == sample_files()
 
 
 # --- Una sola Lumina por carpeta de datos -----------------------------------------------------

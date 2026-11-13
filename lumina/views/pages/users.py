@@ -33,17 +33,24 @@ from .base import ProtectedPage
 
 
 class UsersPage(ProtectedPage):
-    """Listado de cuentas, alta, edición, desactivación y asignación de perfiles (solo administración)."""
+    """Listado de cuentas, alta, edición, desactivación y asignación de perfiles (administración).
+
+    Cada fila solo ofrece controles si quien la ve puede gestionar esa cuenta: los administradores
+    ven las cuentas de administración y la del superadministrador, pero sin poder modificarlas.
+    """
 
     route = Route.USERS
     title = 'Usuarios'
     permission = Permission.MANAGE_USERS
 
-    ROLE_OPTIONS: ClassVar[dict[str, str]] = {
-        role.value: role.label for role in (Role.MANAGER, Role.SECURITY, Role.ADMIN)
+    PROTECTED_REASONS: ClassVar[dict[Role, str]] = {
+        Role.SUPERADMIN: 'Cuenta protegida',
+        Role.ADMIN: 'Solo el superadministrador',
     }
+    """Texto de «Acciones» en las filas de cuentas que quien mira no puede gestionar."""
 
     def render(self) -> None:
+        self._role_options = {role.value: role.label for role in self.role.assignable_roles}
         PageHeader('Usuarios', 'Gestionar accesos y perfiles')
         with Toolbar():
             self._summary = Text()
@@ -57,12 +64,17 @@ class UsersPage(ProtectedPage):
              'como «Pendiente de aprobación», hasta que se les asigna un perfil. Una cuenta desactivada no puede '
              f'iniciar sesión. Tras {AuthController.MAX_FAILED_ATTEMPTS} contraseñas incorrectas seguidas, la '
              'cuenta queda bloqueada hasta que el administrador la desbloquee.')
+        Note('Los administradores no pueden modificar a otros administradores: solo el superadministrador '
+             'gestiona sus perfiles y permisos, sus datos, su activación y su desbloqueo, y es el único que puede '
+             'asignar el perfil de administrador. La cuenta del superadministrador no se modifica desde aquí.')
 
     # --- Tabla --------------------------------------------------------------------------------
 
     @ui.refreshable_method
     def _table(self) -> None:
         users = self._users.value
+        if users is None:
+            return
         connected = sum(1 for user in users if user.connected)
         self._summary.set_text(
             f'{Formatter.plural(len(users), "usuario", "usuarios")} · '
@@ -74,21 +86,23 @@ class UsersPage(ProtectedPage):
 
     def _row(self, table: DataTable, user: User) -> None:
         is_self = user.id == self.user.id
+        manageable = self.user.can_manage(user)
         row = table.row()
         with row.cell(classes='min-w-[160px]'):
             Text(user.name, classes='block')
             Text(user.email, classes=f'{Theme.SMALL} {Theme.MUTED}')
         with row.cell(classes='min-w-[200px]'):
-            select = ui.select(
-                self.ROLE_OPTIONS,
-                value=user.role.value if user.role is not None else None,
-                on_change=partial(self._change_role, user.id),
-            ).props('outlined dense options-dense').classes('w-full').mark(f'role-{user.id}')
-            select.props['aria-label'] = f'Perfil de {user.name}'
-            if user.role is None:
-                select.props['label'] = 'Asignar perfil'
-            if is_self:
-                select.disable()
+            if manageable:
+                select = ui.select(
+                    self._role_options,
+                    value=user.role.value if user.role is not None else None,
+                    on_change=partial(self._change_role, user.id),
+                ).props('outlined dense options-dense').classes('w-full').mark(f'role-{user.id}')
+                select.props['aria-label'] = f'Perfil de {user.name}'
+                if user.role is None:
+                    select.props['label'] = 'Asignar perfil'
+            else:  # la propia cuenta o una de igual o mayor rango: se ve el perfil, sin poder cambiarlo
+                Text(user.role_label).mark(f'role-{user.id}')
         with row.cell():
             label, tone = self._state(user)
             StatusText(label, tone=tone, classes='block' if user.failed_attempts else '')
@@ -98,6 +112,11 @@ class UsersPage(ProtectedPage):
         with row.cell(classes='whitespace-nowrap'):
             if is_self:
                 Text('Tu cuenta', classes=f'{Theme.SMALL} {Theme.MUTED}')
+            elif not manageable:
+                reason = self.PROTECTED_REASONS.get(user.role) if user.role is not None else None
+                Text(reason or 'Sin permiso para modificarla', classes=f'{Theme.SMALL} {Theme.MUTED}').mark(
+                    f'protected-{user.id}'
+                )
             else:
                 with Box(Theme.BUTTON_ROW):
                     Button('Editar', on_click=partial(self._edit_account, user)).mark(f'edit-{user.id}')
@@ -177,7 +196,7 @@ class UsersPage(ProtectedPage):
                 'Nombre', max_length=UserInputValidator.NAME_MAX_LENGTH, autocomplete='off', marker='new-name'
             )
             self._new_email = TextField('Correo', autocomplete='off', marker='new-email')
-            self._new_role = SelectField('Perfil', self.ROLE_OPTIONS, value=Role.MANAGER.value)
+            self._new_role = SelectField('Perfil', self._role_options, value=Role.MANAGER.value, marker='new-role')
             Button('Guardar usuario', variant=ButtonVariant.PRIMARY, on_click=self._create_user).classes('w-full')
         return panel
 

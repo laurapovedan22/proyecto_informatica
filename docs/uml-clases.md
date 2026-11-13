@@ -1,7 +1,8 @@
 # Diagrama de clases UML de Lumina (H1.1 · tarea 1.1.1)
 
-Los tres diagramas describen las clases existentes en `lumina/` en esta entrega del Sprint 1,
-incluidas las correcciones de la auditoría. No representan funciones previstas para otros sprints.
+Los diagramas describen las clases existentes en `lumina/` en esta entrega del Sprint 2,
+incluidas las protecciones del Sprint 1. El apartado d) amplía los tres diagramas originales
+con la supervisión y las herramientas del Sprint 2. No representa funciones futuras.
 La arquitectura por capas está en [arquitectura.md](arquitectura.md) y el contrato de los ficheros
 en [esquemas-json.md](esquemas-json.md).
 
@@ -32,8 +33,12 @@ son los del código y sus valores de persistencia están documentados en los esq
 Pueden ser nulos: `User.role`, `User.created_at`, `User.last_login_at`,
 `SystemConfig.max_reading_age_minutes`, `Sensor.value`, `Sensor.updated_at`, `Camera.stream_url`,
 `Actuator.updated_at`, `Alert.sensor_id`, `Alert.handled_by` y `Alert.updated_at`.
-`User.role=None` significa solicitud pendiente. Las entidades IoT son contratos de datos de H1.1,
-sin pantallas de supervisión o control en este sprint.
+`User.role=None` significa solicitud pendiente. `Role.can_manage` y `User.can_manage` fijan la
+jerarquía superadministrador > administrador > seguridad y gerencia: solo se gestionan cuentas,
+y se asignan perfiles, de rango inferior; por eso los administradores no se modifican entre sí y
+solo `SUPERADMIN` (con `MANAGE_ADMINS`) gestiona administradores. Sensores y cámaras se consultan en el Sprint 2;
+actuadores, alertas e históricos siguen siendo contratos de H1.1 sin pantallas ni lógica nueva.
+Las variables calculadas de supervisión se detallan en el apartado d).
 
 ```mermaid
 classDiagram
@@ -53,6 +58,7 @@ classDiagram
         +bool can_sign_in
         +str role_label
         +can(permission: Permission) bool
+        +can_manage(other: User) bool
         +signed_in(at: datetime) User
         +signed_out() User
         +with_failed_attempt(max_attempts: int) User
@@ -129,19 +135,23 @@ classDiagram
         MANAGE_ALERTS
         CONTROL_ACTUATORS
         MANAGE_USERS
+        MANAGE_ADMINS
         VIEW_ACTIVITY
         CONFIGURE_SYSTEM
         <<enumeration>>
     }
     class Role {
+        SUPERADMIN
         ADMIN
         SECURITY
         MANAGER
         +str label
         +str short_label
         +frozenset~Permission~ permissions
+        +tuple~Role~ assignable_roles
         <<enumeration>>
         +can(permission: Permission) bool
+        +can_manage(role: Role) bool
     }
     class SensorType {
         TEMPERATURE
@@ -446,7 +456,7 @@ classDiagram
     class UserController {
         +__init__(users: UserRepository, hasher: PasswordHasher, clock: Clock) None
         +list_users() list~User~
-        +counts() UserCounts
+        +counts(viewer: User) UserCounts
         +get(user_id: str) User
         +create(name: str, email: str, role: Role, actor: User) NewUserCredentials
         +update_account(user_id: str, name: str, email: str, actor: User) User
@@ -460,6 +470,9 @@ classDiagram
         +Clock clock
         +AuthController auth
         +UserController users
+        +FacilityController facility
+        +SupervisionController supervision
+        +LiveSimulator simulation
         +create(repositories: Repositories, clock: Clock, hasher: PasswordHasher) Services
     }
     ABC <|-- Repository
@@ -534,6 +547,8 @@ classDiagram
     Services o-- Clock : clock
     Services o-- AuthController : auth
     Services o-- UserController : users
+    Services o-- FacilityController : facility
+    Services o-- SupervisionController : supervision
     Services ..> Repositories : create
     PermissionDeniedError ..> User : require
     PermissionDeniedError ..> Permission : require
@@ -550,12 +565,16 @@ Cada ruta crea una instancia de su página. `Router` consulta la sesión y el pe
 construirla; `ProtectedPage.actor` y `act` lo comprueban de nuevo en las acciones. `LiveData`
 revalida el acceso en cada refresco y obtiene los datos mediante controladores. Los controladores
 no dependen de NiceGUI y las vistas no acceden directamente a los ficheros.
+`LiveData.value` es nulo hasta la primera lectura válida; los fallos se notifican y el
+temporizador sigue reintentando. `ProtectedPage.live` pasa el día actual como dependencia
+`watch`, para refrescar también los textos relativos a la fecha sin cambios en los datos.
+Si `allowed` deniega acceso, no se llama al lector y se desactiva el temporizador.
 
 Pueden ser nulos `ProtectedPage.permission`, `NavItem.permission`, `RoleFeature.permission`,
 `RoleFeature.route`, `UserSession.user_id`, `AppSettings.port` y `AppSettings.dark_mode`.
 También pueden ser nulos los resultados de `current_user`, `actor`, `SelectField.value` y
 `EnvironmentReader.optional_integer` y `optional_flag`. Admiten argumentos opcionales
-`success`, `allowed`, `autocomplete`, `max_length`, `on_enter`, `marker`, `on_change`, `on_click`,
+`success`, `allowed`, `watch`, `autocomplete`, `max_length`, `on_enter`, `marker`, `on_change`, `on_click`,
 `href`, `icon`, `on_action`, `action`, `environ`, `services`, `Panel.title`, `DefinitionRow.value`,
 `SelectField.value`, `StatusText.show.tone`, el argumento `moment` de `Formatter.clock` y
 `Formatter.moment`, y `default` en `EnvironmentReader.optional_integer` y `optional_flag`.
@@ -603,7 +622,7 @@ classDiagram
     }
     class LiveData~T~ {
         +T value
-        +__init__(loader: Callable, on_change: Callable, interval: float, allowed: Callable) None
+        +__init__(loader: Callable, on_change: Callable, interval: float, allowed: Callable, watch: Callable) None
         +poll() None
         +reload() None
     }
@@ -636,7 +655,7 @@ classDiagram
         +Route route
         +str title
         +Permission permission
-        +dict ROLE_OPTIONS
+        +dict PROTECTED_REASONS
         +render() None
     }
     class ProfilePage {
@@ -667,6 +686,7 @@ classDiagram
         LOGIN
         REGISTER
         DASHBOARD
+        SUPERVISION
         USERS
         PROFILE
         <<enumeration>>
@@ -780,9 +800,14 @@ classDiagram
     }
     class Formatter {
         +str EMPTY
+        +number(value: float) str
+        +measurement(value: float, unit: str) str
+        +sensor_value(sensor: Sensor) str
+        +sensor_tone(state: SensorState) ToneName
         +clock(moment: datetime) str
         +moment(moment: datetime, today: date) str
         +short_date(day: date) str
+        +camera_time(moment: datetime) str
         +plural(count: int, singular: str, plural: str) str
     }
     class Tone {
@@ -882,6 +907,7 @@ classDiagram
         +bool open_browser
         +bool dark_mode
         +float refresh_seconds
+        +bool simulation
         +bool demo_mode
         +from_env(environ: Mapping) AppSettings
     }
@@ -900,9 +926,17 @@ classDiagram
         +dict WINDOW_TEXTS
         +Services services
         +bool reloads
+        +bool simulates
         +__init__(settings: AppSettings, services: Services) None
         +setup() None
         +run() None
+    }
+    class BackgroundCycle {
+        +bool started
+        +__init__(name: str, job: Callable) None
+        +start(interval: float, immediate: bool) None
+        +run() None
+        +stop() None
     }
     class AlreadyRunningError {
     }
@@ -950,7 +984,7 @@ classDiagram
     ProtectedPage o-- User : user
     ProtectedPage ..> LiveData : live
     UsersPage *-- LiveData : users
-    DashboardPage *-- LiveData : account y counts
+    DashboardPage *-- LiveData : account, counts y facility
     ProfilePage *-- LiveData : profile
     Router o-- ViewContext : context
     Router ..> PublicPage : add_public
@@ -1029,6 +1063,7 @@ classDiagram
     LuminaApp ..> Router : setup crea
     LuminaApp ..> ViewContext : setup crea
     LuminaApp ..> Theme : setup
+    LuminaApp *-- BackgroundCycle : simulación en vivo
     Launcher *-- InstanceLock : lock
     Launcher ..> AppSettings : prepare
     Launcher ..> LuminaApp : run crea
@@ -1043,3 +1078,216 @@ classDiagram
     note for select "Clase externa nicegui.ui.select"
 ```
 
+## d) Ampliación del Sprint 2: establecimiento y supervisión
+
+Fuentes: [status.py](../lumina/models/status.py), [analysis.py](../lumina/controllers/analysis.py),
+[facility.py](../lumina/controllers/facility.py), [supervision.py](../lumina/controllers/supervision.py),
+[página de supervisión](../lumina/views/pages/supervision.py),
+[componentes del establecimiento](../lumina/views/components/facility.py),
+[cámaras](../lumina/views/components/camera.py), [barras](../lumina/views/components/data.py) y
+[herramientas](../scripts/). Los tipos de estado son inmutables (`frozen=True`, `slots=True`).
+
+Pueden ser nulos los valores y fechas ambientales, `CapacityStatus.updated_at`,
+`ZoneMotion.detected` y `updated_at`, y las últimas lecturas de las instantáneas.
+`detected=None` expresa que no hay una detección operativa disponible; no equivale a `False`.
+`SensorState` es un enumerado de presentación, no un estado adicional en el JSON.
+`SensorHealth` conserva el valor y la fecha originales aunque la lectura no sea operativa.
+NaN y ±infinito producen `SensorState.ERROR` y no contribuyen a los agregados ni a las detecciones;
+`Formatter.sensor_value` los presenta como «Lectura inválida» con su unidad.
+Los sensores de movimiento de cada zona están en `ZoneMotion.sensors`.
+
+```mermaid
+classDiagram
+    class SensorState {
+        ACTIVE
+        ERROR
+        STALE
+        NO_DATA
+        <<enumeration>>
+    }
+    class CapacityStatus {
+        +int occupied
+        +int capacity
+        +datetime updated_at
+        +int available
+        +float ratio
+    }
+    class ClimateStatus {
+        +Zone zone
+        +float temperature
+        +float humidity
+        +datetime temperature_at
+        +datetime humidity_at
+    }
+    class SensorHealth {
+        +Sensor sensor
+        +Zone zone
+        +SensorState state
+    }
+    class ZoneMotion {
+        +Zone zone
+        +tuple sensors
+        +bool detected
+        +SensorState state
+        +datetime updated_at
+        +str label
+    }
+    class CameraFeed {
+        +Camera camera
+        +Zone zone
+        +ZoneMotion motion
+    }
+    class FacilityStatus {
+        +ClimateStatus climate
+        +CapacityStatus store
+        +CapacityStatus parking
+        +tuple sensors
+        +datetime last_reading_at
+    }
+    class SupervisionSnapshot {
+        +tuple cameras
+        +tuple zones
+        +tuple sensors
+        +datetime last_reading_at
+    }
+    class FacilityAnalyzer {
+        +zone(config: SystemConfig, zone_id: str) Zone
+        +sensor_state(sensor: Sensor, now: datetime, max_age_minutes: int) SensorState
+        +health(config: SystemConfig, sensors: Sequence, now: datetime) tuple
+        +latest_update(sensors: Iterable) datetime
+        +reading_time(items: Sequence) datetime
+        +capacity(health: Sequence, sensor_type: SensorType, capacity: int) CapacityStatus
+        +climate(config: SystemConfig, health: Sequence) ClimateStatus
+        +motion(zone: Zone, health: Sequence) ZoneMotion
+    }
+    class FacilityController {
+        +__init__(repositories: Repositories, clock: Clock) None
+        +status() FacilityStatus
+    }
+    class SupervisionController {
+        +__init__(repositories: Repositories, clock: Clock) None
+        +snapshot() SupervisionSnapshot
+    }
+    class SupervisionPage {
+        +Route route
+        +str title
+        +Permission permission
+        +render() None
+    }
+    class FacilityMetrics {
+        +__init__(status: FacilityStatus, today: date) None
+    }
+    class OccupancyPanels {
+        +__init__(status: FacilityStatus) None
+    }
+    class SensorSummary {
+        +__init__(sensors: tuple) None
+    }
+    class SensorTable {
+        +__init__(sensors: tuple, today: date) None
+    }
+    class MotionTable {
+        +__init__(zones: tuple, today: date) None
+    }
+    class CameraGrid {
+        +__init__(feeds: tuple, today: date, now: datetime) None
+        +shows(feeds: tuple) bool
+        +show_feeds(feeds: tuple, today: date) None
+        +show_time(now: datetime) None
+    }
+    class CameraTile {
+        +tuple VIDEO_EXTENSIONS
+        +__init__(feed: CameraFeed, today: date, now: datetime) None
+        +is_video(url: str) bool
+        +show_feed(feed: CameraFeed, today: date) None
+        +show_time(now: datetime) None
+        +signal_lost() None
+    }
+    class ProgressMeter {
+        +__init__(value: float, maximum: float, label: str) None
+    }
+    class SensorSimulator {
+        +__init__(repositories: Repositories, clock: Clock, rng: Random, motion: bool) None
+        +step() list~Sensor~
+    }
+    class LiveSimulator {
+        +timedelta EXTERNAL_HOLD
+        +float MOTION_GAP_SECONDS
+        +float CAR_GAP_SECONDS
+        +__init__(repositories: Repositories, clock: Clock, rng: Random) None
+        +step(seconds: float) list~Sensor~
+        +store_crowd(hour: float) float
+        +parking_crowd(hour: float) float
+    }
+    class SchemaDocumenter {
+        +tuple FILES
+        +dict TYPES
+        +str INTRO
+        +__init__(schemas_dir: Path) None
+        +render() str
+    }
+    StrEnum <|-- SensorState
+    SensorHealth --> Sensor
+    SensorHealth --> Zone
+    SensorHealth --> SensorState
+    ZoneMotion --> Zone
+    ZoneMotion --> SensorState
+    ZoneMotion o-- SensorHealth : sensors
+    CameraFeed --> Camera
+    CameraFeed --> Zone
+    CameraFeed --> ZoneMotion
+    ClimateStatus --> Zone
+    FacilityStatus *-- ClimateStatus
+    FacilityStatus *-- CapacityStatus : store y parking
+    FacilityStatus o-- SensorHealth : sensors
+    SupervisionSnapshot *-- CameraFeed : cameras
+    SupervisionSnapshot *-- ZoneMotion : zones
+    SupervisionSnapshot o-- SensorHealth : sensors
+    FacilityController o-- Repositories
+    FacilityController o-- Clock
+    FacilityController ..> FacilityAnalyzer
+    FacilityController ..> FacilityStatus
+    SupervisionController o-- Repositories
+    SupervisionController o-- Clock
+    SupervisionController ..> FacilityAnalyzer
+    SupervisionController ..> SupervisionSnapshot
+    ProtectedPage <|-- SupervisionPage
+    SupervisionPage *-- LiveData : snapshot
+    SupervisionPage ..> SupervisionController
+    SupervisionPage ..> CameraGrid
+    SupervisionPage ..> MotionTable
+    SupervisionPage ..> SensorTable
+    DashboardPage ..> FacilityController
+    DashboardPage ..> FacilityMetrics
+    DashboardPage ..> OccupancyPanels
+    DashboardPage ..> SensorSummary
+    MetricGrid <|-- FacilityMetrics
+    TwoColumns <|-- OccupancyPanels
+    Panel <|-- SensorSummary
+    Panel <|-- SensorTable
+    Panel <|-- MotionTable
+    Panel <|-- CameraGrid
+    Box <|-- CameraTile
+    Box <|-- ProgressMeter
+    CameraGrid *-- CameraTile
+    OccupancyPanels ..> ProgressMeter
+    SensorTable ..> DataTable
+    MotionTable ..> DataTable
+    CameraTile ..> Picture
+    CameraTile ..> video : vídeo en directo
+    SensorSimulator o-- Repositories
+    SensorSimulator o-- Clock
+    SensorSimulator ..> Sensor : modify
+    LiveSimulator o-- Repositories
+    LiveSimulator o-- Clock
+    LiveSimulator ..> Sensor : modify en cada refresco
+    note for video "Clase externa nicegui.ui.video"
+    note for SchemaDocumenter "Herramienta de documentación: lee schemas/ con biblioteca estándar."
+    note for Theme "Añade estilos de cámaras, barras y horas; progress_width(ratio) limita el ancho."
+```
+
+`Services.create` compone los dos nuevos controladores y `LiveSimulator` con los repositorios y
+el reloj que ya utilizaban las pruebas del Sprint 1. `LuminaApp` ejecuta `LiveSimulator.step` en un
+`BackgroundCycle` para que los datos estén siempre vivos; `SensorSimulator` y el documentador se
+ejecutan desde terminal. Ninguno es una pantalla ni necesita NiceGUI. No se crean clases de alertas operativas,
+actuadores, reglas, registros ni series históricas en el Sprint 2.

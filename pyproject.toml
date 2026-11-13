@@ -1,7 +1,7 @@
 [project]
 name = "lumina"
 version = "0.1.0"
-description = "Lumina · Sprint 1: arquitectura MVC, acceso por roles y gestión de usuarios (aplicación de escritorio con NiceGUI)."
+description = "Lumina · Sprint 2: sensores, aforo, ambiente y cámaras por rol (aplicación de escritorio con NiceGUI)."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [

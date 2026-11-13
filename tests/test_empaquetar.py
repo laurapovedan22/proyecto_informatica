@@ -40,6 +40,8 @@ def build(packager: Any, folder: Path, version: str) -> Path:
 def test_the_command_bundles_the_resources_but_not_the_development_tools(tmp_path: Path) -> None:
     packager = empaquetar.Packager(PROJECT_ROOT, tmp_path, onefile=False, clean=False)
     command: list[str] = packager.command(tmp_path / 'icono.png', tmp_path / 'datos')
+    assert command[command.index('--name') + 1] == 'Lumina Sprint 2'
+    assert command[command.index('--osx-bundle-identifier') + 1] == 'es.lumina.sprint2'
     assert {'--windowed', '--noconfirm'} <= set(command)
     added = [command[index + 1] for index, item in enumerate(command) if item == '--add-data']
     assert f'{tmp_path / "datos"}{os.pathsep}data' in added
