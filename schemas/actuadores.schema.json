@@ -1,0 +1,79 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lumina:esquema:actuadores",
+  "title": "actuadores.json",
+  "description": "Estado de los actuadores (Sprint 3: H3.2, H3.3). La maqueta debe leer «encendido» para actuar.",
+  "type": "object",
+  "required": [
+    "actuadores"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "actuadores": {
+      "type": "array",
+      "description": "Ventiladores, LED de aviso y alarma digital.",
+      "items": {
+        "$ref": "#/$defs/actuador"
+      }
+    }
+  },
+  "$defs": {
+    "actuador": {
+      "type": "object",
+      "description": "Actuador y su estado.",
+      "required": [
+        "id",
+        "nombre",
+        "tipo",
+        "zona"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único del actuador."
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre visible."
+        },
+        "tipo": {
+          "enum": [
+            "ventilador",
+            "led",
+            "alarma"
+          ],
+          "description": "Tipo de actuador."
+        },
+        "zona": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador de una zona de configuracion.json."
+        },
+        "encendido": {
+          "type": "boolean",
+          "default": false,
+          "description": "Estado binario: true = encendido o activada."
+        },
+        "modo": {
+          "enum": [
+            "automatico",
+            "manual"
+          ],
+          "description": "Quién decidió el estado: las reglas automáticas o un usuario.",
+          "default": "manual"
+        },
+        "actualizado_en": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Último cambio de estado. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,86 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lumina:esquema:configuracion",
+  "title": "configuracion.json",
+  "description": "Parámetros del establecimiento (se editarán en el Sprint 3: H3.1). Si falta un campo se usa su valor por defecto.",
+  "type": "object",
+  "required": [],
+  "additionalProperties": false,
+  "properties": {
+    "establecimiento": {
+      "type": "string",
+      "default": "Supermercado Lumina",
+      "description": "Nombre del establecimiento."
+    },
+    "aforo_maximo": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 150,
+      "description": "Personas que caben en la tienda."
+    },
+    "plazas_parking": {
+      "type": "integer",
+      "minimum": 0,
+      "default": 50,
+      "description": "Plazas del aparcamiento."
+    },
+    "umbral_temperatura": {
+      "type": "number",
+      "default": 26.0,
+      "description": "°C a partir de los que debe encenderse el ventilador."
+    },
+    "temperatura_critica": {
+      "type": "number",
+      "default": 30.0,
+      "description": "°C que generan un aviso al personal de seguridad."
+    },
+    "antiguedad_maxima_lectura_min": {
+      "type": [
+        "integer",
+        "null"
+      ],
+      "minimum": 0,
+      "description": "Minutos tras los que una lectura se considera desactualizada; null o 0 = no se comprueba."
+    },
+    "zona_principal": {
+      "type": "string",
+      "default": "tienda",
+      "description": "Zona cuya temperatura y humedad muestra el dashboard."
+    },
+    "zonas": {
+      "type": "array",
+      "description": "Zonas supervisadas; sensores, cámaras, actuadores y alertas las referencian por su id.",
+      "items": {
+        "$ref": "#/$defs/zona"
+      }
+    }
+  },
+  "$defs": {
+    "zona": {
+      "type": "object",
+      "description": "Zona del establecimiento.",
+      "required": [
+        "id",
+        "nombre"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único de la zona (p. ej. «almacen»)."
+        },
+        "nombre": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Nombre visible."
+        },
+        "restringida": {
+          "type": "boolean",
+          "default": false,
+          "description": "true = el movimiento en esta zona genera una alerta."
+        }
+      }
+    }
+  }
+}

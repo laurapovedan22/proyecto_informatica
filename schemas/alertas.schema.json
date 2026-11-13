@@ -1,0 +1,96 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:lumina:esquema:alertas",
+  "title": "alertas.json",
+  "description": "Alertas e incidencias (Sprint 3: H3.2, H3.4). Ciclo de vida: pendiente → en revisión → resuelta.",
+  "type": "object",
+  "required": [
+    "alertas"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "alertas": {
+      "type": "array",
+      "description": "Alertas registradas.",
+      "items": {
+        "$ref": "#/$defs/alerta"
+      }
+    }
+  },
+  "$defs": {
+    "alerta": {
+      "type": "object",
+      "description": "Incidencia detectada.",
+      "required": [
+        "id",
+        "tipo",
+        "zona",
+        "fecha_hora"
+      ],
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador único de la alerta (p. ej. «alr-0002»)."
+        },
+        "tipo": {
+          "enum": [
+            "movimiento_zona_restringida",
+            "temperatura_critica",
+            "fallo_sensor"
+          ],
+          "description": "Situación que la generó."
+        },
+        "zona": {
+          "type": "string",
+          "minLength": 1,
+          "description": "Identificador de una zona de configuracion.json."
+        },
+        "fecha_hora": {
+          "type": "string",
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Momento en que se detectó. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        },
+        "estado": {
+          "enum": [
+            "pendiente",
+            "en_revision",
+            "resuelta"
+          ],
+          "description": "Estado de la incidencia.",
+          "default": "pendiente"
+        },
+        "descripcion": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Texto breve para el personal de seguridad."
+        },
+        "sensor": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Identificador del sensor que la detectó."
+        },
+        "atendida_por": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "description": "Nombre de quien la revisó o resolvió por última vez."
+        },
+        "actualizada_en": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
+          "description": "Último cambio de estado. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        }
+      }
+    }
+  }
+}

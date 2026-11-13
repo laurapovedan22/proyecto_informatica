@@ -1,0 +1,69 @@
+{
+  "usuarios": [
+    {
+      "id": "usr-elena",
+      "nombre": "Elena Navarro",
+      "email": "elena.navarro@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$1f8c515e126115d18265351ee57b9447$5b12e8e680e608d10e9775f4a7dd00b4979b05f4dc7bbcaec040795c43594c78",
+      "rol": "superadmin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-01T08:30:00",
+      "ultimo_acceso": "2026-10-14T09:10:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
+      "id": "usr-ana",
+      "nombre": "Ana López",
+      "email": "ana.lopez@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$cb7b25d55458cf55db854f2ebae34662$1154bacfc90e695a34299ec82cf7841a375bd202a9f5fab1541b3d3643d99148",
+      "rol": "admin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-01T09:00:00",
+      "ultimo_acceso": "2026-10-14T14:28:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
+      "id": "usr-javier",
+      "nombre": "Javier Moreno",
+      "email": "javier.moreno@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$ce5ac4542c745dc818ed300f7bde9f68$13bfa91c405d49673b9b0b7fbcdb9e373bd5546941b4e9891f7d0ee0e209f317",
+      "rol": "admin",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-03T11:15:00",
+      "ultimo_acceso": "2026-10-13T17:20:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
+      "id": "usr-carlos",
+      "nombre": "Carlos Ruiz",
+      "email": "carlos.ruiz@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$468b647cf343da30e36fc2c752811cc0$1a648892a5fc946cf759bb3c509a785dac3704daf34b58d44f8a3d313426b9c7",
+      "rol": "seguridad",
+      "activo": true,
+      "conectado": true,
+      "creado_en": "2026-09-01T09:10:00",
+      "ultimo_acceso": "2026-10-14T14:20:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    },
+    {
+      "id": "usr-marta",
+      "nombre": "Marta García",
+      "email": "marta.garcia@lumina.es",
+      "password_hash": "pbkdf2_sha256$200000$c8c888d55470c9ba5dc8324f3ed210e2$545c70938e468c8405a4b19a55f5df2d3514624073c3461b7f2bd419ea3b7741",
+      "rol": "gerente",
+      "activo": true,
+      "conectado": false,
+      "creado_en": "2026-09-02T10:30:00",
+      "ultimo_acceso": "2026-10-13T18:42:00",
+      "intentos_fallidos": 0,
+      "bloqueado": false
+    }
+  ]
+}
