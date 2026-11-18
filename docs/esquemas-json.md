@@ -46,7 +46,7 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 
 ## `sensores.json`
 
-Última lectura de cada sensor y cámaras de vigilancia (Sprint 2: H2.1, H2.4). Los escriben el simulador o la maqueta IoT.
+Última lectura de cada sensor y cámaras de vigilancia con su último análisis de imagen (Sprint 2: H2.1, H2.4; YOLO: ampliación del Sprint 3). Los escriben el simulador, la maqueta IoT y el análisis de imagen.
 
 | Campo | Tipo | Oblig. | Descripción |
 | ----- | ---- | :----: | ----------- |
@@ -65,7 +65,7 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 | `estado` | `activo` · `error` · `desactualizado` |  | Estado del sensor. (por defecto `activo`) |
 | `actualizado_en` | fecha ISO 8601 · null |  | Momento de la última lectura. ISO 8601 en hora local (2026-10-14T14:30:00). |
 
-**camara** · Cámara de vigilancia.
+**camara** · Cámara de vigilancia y lo que vio YOLO en el último fotograma analizado.
 
 | Campo | Tipo | Oblig. | Descripción |
 | ----- | ---- | :----: | ----------- |
@@ -74,6 +74,9 @@ Cuentas de acceso a Lumina (H1.2, H1.3, H1.4). Las contraseñas nunca se guardan
 | `zona` | texto | ✓ | Identificador de una zona de configuracion.json. |
 | `url` | texto · null |  | URL de un vídeo (.mp4, .webm, .ogv, .mov…), que se reproduce en bucle y sin sonido como señal en directo, o de una imagen o flujo MJPEG. null = vista simulada. |
 | `estado` | `activo` · `error` |  | Estado de la cámara. (por defecto `activo`) |
+| `personas` | entero · null |  | Personas que vio YOLO en el último fotograma analizado. null = sin analizar o sin imagen. (≥ 0) |
+| `analizada_en` | fecha ISO 8601 · null |  | Momento del último análisis de imagen. ISO 8601 en hora local (2026-10-14T14:30:00). |
+| `captura` | texto · null |  | Imagen del último análisis con las personas recuadradas, relativa a la carpeta de datos (capturas/….jpg). Solo si vio a alguien. |
 
 ## `actuadores.json`
 
@@ -92,7 +95,7 @@ Estado de los actuadores (Sprint 3: H3.2, H3.3). La maqueta debe leer «encendid
 | `tipo` | `ventilador` · `led` · `alarma` | ✓ | Tipo de actuador. |
 | `zona` | texto | ✓ | Identificador de una zona de configuracion.json. |
 | `encendido` | booleano |  | Estado binario: true = encendido o activada. (por defecto `false`) |
-| `modo` | `automatico` · `manual` |  | Quién decidió el estado: las reglas automáticas o un usuario. (por defecto `manual`) |
+| `modo` | `automatico` · `manual` |  | Los controles pasan a manual. El ventilador manual se respeta hasta volver a automático; el movimiento restringido reactiva LED y alarma en automático. (por defecto `manual`) |
 | `actualizado_en` | fecha ISO 8601 · null |  | Último cambio de estado. ISO 8601 en hora local (2026-10-14T14:30:00). |
 
 ## `alertas.json`
@@ -108,14 +111,15 @@ Alertas e incidencias (Sprint 3: H3.2, H3.4). Ciclo de vida: pendiente → en re
 | Campo | Tipo | Oblig. | Descripción |
 | ----- | ---- | :----: | ----------- |
 | `id` | texto | ✓ | Identificador único de la alerta (p. ej. «alr-0002»). |
-| `tipo` | `movimiento_zona_restringida` · `temperatura_critica` · `fallo_sensor` | ✓ | Situación que la generó. |
+| `tipo` | `movimiento_zona_restringida` · `persona_zona_restringida` · `temperatura_critica` · `fallo_sensor` | ✓ | Situación que la generó. persona_zona_restringida: YOLO vio a una persona en la imagen de una cámara de una zona restringida. |
 | `zona` | texto | ✓ | Identificador de una zona de configuracion.json. |
 | `fecha_hora` | fecha ISO 8601 | ✓ | Momento en que se detectó. ISO 8601 en hora local (2026-10-14T14:30:00). |
-| `estado` | `pendiente` · `en_revision` · `resuelta` |  | Estado de la incidencia. (por defecto `pendiente`) |
+| `estado` | `pendiente` · `en_revision` · `resuelta` |  | Activa (pendiente), En revisión o Resuelta; pendiente y en_revision son abiertas. Solo una abierta por tipo, zona y sensor. (por defecto `pendiente`) |
 | `descripcion` | texto · null |  | Texto breve para el personal de seguridad. |
-| `sensor` | texto · null |  | Identificador del sensor que la detectó. |
+| `sensor` | texto · null |  | Identificador del sensor o de la cámara que la detectó. |
 | `atendida_por` | texto · null |  | Nombre de quien la revisó o resolvió por última vez. |
 | `actualizada_en` | fecha ISO 8601 · null |  | Último cambio de estado. ISO 8601 en hora local (2026-10-14T14:30:00). |
+| `captura` | texto · null |  | Imagen en la que YOLO vio a la persona, relativa a la carpeta de datos (capturas/….jpg). |
 
 ## `historicos.json`
 
@@ -136,15 +140,15 @@ Lecturas históricas para estadísticas (Sprint 4: H4.1).
 
 ## `configuracion.json`
 
-Parámetros del establecimiento (se editarán en el Sprint 3: H3.1). Si falta un campo se usa su valor por defecto.
+Parámetros del establecimiento, editables por administración en el Sprint 3 (H3.1). Se conservan los valores por defecto cuando falta un campo.
 
 | Campo | Tipo | Oblig. | Descripción |
 | ----- | ---- | :----: | ----------- |
 | `establecimiento` | texto |  | Nombre del establecimiento. (por defecto `Supermercado Lumina`) |
 | `aforo_maximo` | entero |  | Personas que caben en la tienda. (por defecto `150`; ≥ 0) |
 | `plazas_parking` | entero |  | Plazas del aparcamiento. (por defecto `50`; ≥ 0) |
-| `umbral_temperatura` | número |  | °C a partir de los que debe encenderse el ventilador. (por defecto `26.0`) |
-| `temperatura_critica` | número |  | °C que generan un aviso al personal de seguridad. (por defecto `30.0`) |
+| `umbral_temperatura` | número |  | °C que debe superar la temperatura para encender el ventilador automático; se apaga a umbral − 0,5 °C. (por defecto `26.0`) |
+| `temperatura_critica` | número |  | °C a partir de los que se genera una alerta (incluye igualdad); debe ser mayor que el umbral del ventilador. (por defecto `30.0`) |
 | `antiguedad_maxima_lectura_min` | entero · null |  | Minutos tras los que una lectura se considera desactualizada; null o 0 = no se comprueba. (≥ 0) |
 | `zona_principal` | texto |  | Zona cuya temperatura y humedad muestra el dashboard. (por defecto `tienda`) |
 | `zonas` | lista de *zona* |  | Zonas supervisadas; sensores, cámaras, actuadores y alertas las referencian por su id. |

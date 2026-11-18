@@ -1,4 +1,4 @@
-"""Dashboard por rol: cuentas del Sprint 1 e indicadores del establecimiento del Sprint 2."""
+"""Dashboard por rol: cuentas, establecimiento, alertas y estado de equipos (Sprints 1 a 3)."""
 
 from __future__ import annotations
 
@@ -23,6 +23,7 @@ from ..components import (
     TwoColumns,
 )
 from ..components.facility import FacilityMetrics, OccupancyPanels, SensorSummary
+from ..components.incidents import EquipmentPanel, OpenAlertsBanner
 from ..formatting import Formatter
 from ..routes import Route
 from ..theme import Theme, ToneName
@@ -47,7 +48,7 @@ class DashboardPage(ProtectedPage):
     route = Route.DASHBOARD
     title = 'Dashboard'
 
-    CURRENT_SPRINT: ClassVar[int] = 2
+    CURRENT_SPRINT: ClassVar[int] = 3
     SUMMARIES: ClassVar[dict[Role, str]] = {
         Role.SUPERADMIN: 'Gestión de administradores y cuentas, y supervisión del establecimiento',
         Role.ADMIN: 'Gestión de cuentas y supervisión del establecimiento',
@@ -62,9 +63,9 @@ class DashboardPage(ProtectedPage):
         RoleFeature('Consultar y modificar tu perfil', None, 1, Route.PROFILE),
         RoleFeature('Supervisar sensores y cámaras', Permission.SUPERVISE, 2, Route.SUPERVISION),
         RoleFeature('Consultar aforo, parking, temperatura y humedad', Permission.VIEW_FACILITY, 2, Route.DASHBOARD),
-        RoleFeature('Consultar y atender alertas', Permission.MANAGE_ALERTS, 3),
-        RoleFeature('Controlar ventiladores, LED y alarma', Permission.CONTROL_ACTUATORS, 3),
-        RoleFeature('Configurar umbrales y zonas restringidas', Permission.CONFIGURE_SYSTEM, 3),
+        RoleFeature('Consultar y atender alertas', Permission.MANAGE_ALERTS, 3, Route.SUPERVISION),
+        RoleFeature('Controlar ventiladores, LED y alarma', Permission.CONTROL_ACTUATORS, 3, Route.SUPERVISION),
+        RoleFeature('Configurar umbrales y zonas restringidas', Permission.CONFIGURE_SYSTEM, 3, Route.CONFIGURATION),
         RoleFeature('Consultar históricos y estadísticas', Permission.VIEW_HISTORY, 4),
         RoleFeature('Consultar usuarios conectados y registros de actividad', Permission.VIEW_ACTIVITY, 4),
     )
@@ -79,6 +80,11 @@ class DashboardPage(ProtectedPage):
                 lambda: self.services.users.counts(self.user), self._accounts.refresh
             )
             self._accounts()
+        if self.user.can(Permission.MANAGE_ALERTS):
+            self._alerts = self.live(self.services.supervision.open_alerts, self._alerts_panel.refresh)
+            self._alerts_panel()
+        self._equipment = self.live(self.services.supervision.equipment, self._equipment_panel.refresh)
+        self._equipment_panel()
         self._facility = self.live(self.services.facility.status, self._facility_panel.refresh)
         self._facility_panel()
         with TwoColumns():
@@ -175,3 +181,15 @@ class DashboardPage(ProtectedPage):
                 tag='p',
                 classes=Theme.NOTE,
             )
+
+    @ui.refreshable_method
+    def _alerts_panel(self) -> None:
+        alerts = self._alerts.value
+        if alerts is not None:  # sin primera lectura válida no se muestra (LiveData reintenta)
+            OpenAlertsBanner(alerts, on_review=lambda: ui.navigate.to(Route.SUPERVISION))
+
+    @ui.refreshable_method
+    def _equipment_panel(self) -> None:
+        equipment = self._equipment.value
+        if equipment is not None:
+            EquipmentPanel(equipment)

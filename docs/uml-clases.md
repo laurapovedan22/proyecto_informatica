@@ -1,8 +1,10 @@
 # Diagrama de clases UML de Lumina (H1.1 · tarea 1.1.1)
 
-Los diagramas describen las clases existentes en `lumina/` en esta entrega del Sprint 2,
+Los diagramas describen las clases existentes en `lumina/` en esta entrega del Sprint 3,
 incluidas las protecciones del Sprint 1. El apartado d) amplía los tres diagramas originales
-con la supervisión y las herramientas del Sprint 2. No representa funciones futuras.
+con la supervisión y las herramientas del Sprint 2; el apartado e) añade configuración,
+reglas, alertas y equipos del Sprint 3, y el f), el análisis de imagen con YOLO (18/11/2026).
+No representa funciones futuras.
 La arquitectura por capas está en [arquitectura.md](arquitectura.md) y el contrato de los ficheros
 en [esquemas-json.md](esquemas-json.md).
 
@@ -37,7 +39,8 @@ Pueden ser nulos: `User.role`, `User.created_at`, `User.last_login_at`,
 jerarquía superadministrador > administrador > seguridad y gerencia: solo se gestionan cuentas,
 y se asignan perfiles, de rango inferior; por eso los administradores no se modifican entre sí y
 solo `SUPERADMIN` (con `MANAGE_ADMINS`) gestiona administradores. Sensores y cámaras se consultan en el Sprint 2;
-actuadores, alertas e históricos siguen siendo contratos de H1.1 sin pantallas ni lógica nueva.
+actuadores y alertas tienen lógica y pantallas en el Sprint 3. Los históricos conservan
+su contrato de H1.1, sin consultas nuevas hasta el Sprint 4.
 Las variables calculadas de supervisión se detallan en el apartado d).
 
 ```mermaid
@@ -94,11 +97,19 @@ classDiagram
         +str unit
     }
     class Camera {
+        +tuple VIDEO_EXTENSIONS
         +str id
         +str name
         +str zone_id
         +str stream_url
         +SensorStatus status
+        +int people
+        +datetime analyzed_at
+        +str capture
+        +tuple signal
+        +tuple analysis
+        +is_video_url(url: str) bool
+        +with_analysis(people: int, at: datetime, capture: str) Camera
     }
     class Actuator {
         +str id
@@ -119,6 +130,7 @@ classDiagram
         +str sensor_id
         +str handled_by
         +datetime updated_at
+        +str capture
         +bool is_open
     }
     class Reading {
@@ -185,6 +197,7 @@ classDiagram
     }
     class AlertType {
         RESTRICTED_MOTION
+        PERSON_IN_RESTRICTED_ZONE
         CRITICAL_TEMPERATURE
         SENSOR_FAILURE
         +str label
@@ -314,6 +327,7 @@ classDiagram
         <<abstract>>
         +load() SystemConfig
         +save(config: SystemConfig) None
+        +modify(change: Callable) SystemConfig
     }
     class DataFormatError {
     }
@@ -380,6 +394,7 @@ classDiagram
         +__init__(file: JsonFile) None
         +load() SystemConfig
         +save(config: SystemConfig) None
+        +modify(change: Callable) SystemConfig
     }
     class DataFiles {
         +str USERS
@@ -397,6 +412,7 @@ classDiagram
         +AlertRepository alerts
         +ReadingRepository readings
         +ConfigRepository config
+        +CaptureRepository captures
         +from_json_dir(data_dir: Path) Repositories
     }
     class Clock {
@@ -472,6 +488,8 @@ classDiagram
         +UserController users
         +FacilityController facility
         +SupervisionController supervision
+        +ConfigurationController configuration
+        +RulesController rules
         +LiveSimulator simulation
         +create(repositories: Repositories, clock: Clock, hasher: PasswordHasher) Services
     }
@@ -616,6 +634,7 @@ classDiagram
         +current_user() User
         +actor() User
         +act(action: Callable, success: str) bool
+        +act_async(action: Callable, success: str, then: Callable) bool
         +build() None
         +render() None
         +live(loader: Callable, on_change: Callable) LiveData~T~
@@ -687,6 +706,7 @@ classDiagram
         REGISTER
         DASHBOARD
         SUPERVISION
+        CONFIGURATION
         USERS
         PROFILE
         <<enumeration>>
@@ -930,6 +950,8 @@ classDiagram
         +__init__(settings: AppSettings, services: Services) None
         +setup() None
         +run() None
+        -_evaluate_rules() None
+        -_stop_rules() None
     }
     class BackgroundCycle {
         +bool started
@@ -1136,6 +1158,7 @@ classDiagram
         +Camera camera
         +Zone zone
         +ZoneMotion motion
+        +bool restricted_presence
     }
     class FacilityStatus {
         +ClimateStatus climate
@@ -1145,6 +1168,8 @@ classDiagram
         +datetime last_reading_at
     }
     class SupervisionSnapshot {
+        +tuple alerts
+        +tuple actuators
         +tuple cameras
         +tuple zones
         +tuple sensors
@@ -1165,7 +1190,7 @@ classDiagram
         +status() FacilityStatus
     }
     class SupervisionController {
-        +__init__(repositories: Repositories, clock: Clock) None
+        +__init__(repositories: Repositories, clock: Clock, rules: RulesController) None
         +snapshot() SupervisionSnapshot
     }
     class SupervisionPage {
@@ -1193,6 +1218,7 @@ classDiagram
         +__init__(feeds: tuple, today: date, now: datetime) None
         +shows(feeds: tuple) bool
         +show_feeds(feeds: tuple, today: date) None
+        +show_vision(text: str) None
         +show_time(now: datetime) None
     }
     class CameraTile {
@@ -1202,6 +1228,7 @@ classDiagram
         +show_feed(feed: CameraFeed, today: date) None
         +show_time(now: datetime) None
         +signal_lost() None
+        +show_capture() None
     }
     class ProgressMeter {
         +__init__(value: float, maximum: float, label: str) None
@@ -1291,3 +1318,250 @@ el reloj que ya utilizaban las pruebas del Sprint 1. `LuminaApp` ejecuta `LiveSi
 `BackgroundCycle` para que los datos estén siempre vivos; `SensorSimulator` y el documentador se
 ejecutan desde terminal. Ninguno es una pantalla ni necesita NiceGUI. No se crean clases de alertas operativas,
 actuadores, reglas, registros ni series históricas en el Sprint 2.
+
+
+## e) Ampliación del Sprint 3: configuración, reglas e incidencias
+
+Fuentes: [configuration.py](../lumina/controllers/configuration.py),
+[rules.py](../lumina/controllers/rules.py),
+[supervision.py](../lumina/controllers/supervision.py),
+[authorization.py](../lumina/controllers/authorization.py),
+[ConfigurationPage](../lumina/views/pages/configuration.py),
+[incidents.py](../lumina/views/components/incidents.py) y
+[AlertWatcher](../lumina/views/components/shell.py).
+
+```mermaid
+classDiagram
+    class ConfigurationChanges {
+        +float fan_threshold
+        +float critical_temperature
+        +int max_occupancy
+        +int parking_spaces
+        +int max_reading_age_minutes
+        +frozenset restricted_zone_ids
+    }
+    class ConfigurationController {
+        +__init__(repositories: Repositories, rules: RulesController) None
+        +current() SystemConfig
+        +update(changes: ConfigurationChanges, actor: User) SystemConfig
+    }
+    class RulesResult {
+        +tuple alerts_created
+        +tuple actuators_changed
+    }
+    class RulesController {
+        +float HYSTERESIS
+        +__init__(repositories: Repositories, clock: Clock) None
+        +evaluate() RulesResult
+    }
+    class SupervisionController {
+        +equipment() tuple
+        +alerts() tuple
+        +open_alerts() tuple
+        +update_alert(alert_id: str, status: AlertStatus, actor: User) Alert
+        +set_actuator(actuator_id: str, on: bool, actor: User) Actuator
+        +set_automatic(actuator_id: str, actor: User) Actuator
+    }
+    class ZoneAlert {
+        +Alert alert
+        +Zone zone
+    }
+    class ZoneActuator {
+        +Actuator actuator
+        +Zone zone
+    }
+    class ConfigurationPage {
+        +Route route
+        +str title
+        +Permission permission
+        +render() None
+    }
+    class NumberField {
+        +number input
+        +float value
+    }
+    class AlertList {
+        +__init__(alerts: tuple, today: date, on_status: Callable) None
+    }
+    class EquipmentPanel {
+        +__init__(actuators: tuple, on_switch: Callable, on_automatic: Callable) None
+    }
+    class OpenAlertsBanner {
+        +__init__(alerts: tuple, on_review: Callable) None
+    }
+    class AlertWatcher {
+        +__init__(supervision: SupervisionController, initial: tuple | None, badge: Text, interval: float, allowed: Callable) None
+        +check() None
+    }
+    Services o-- RulesController : rules
+    Services o-- ConfigurationController : configuration
+    ConfigurationController o-- Repositories
+    ConfigurationController o-- RulesController
+    ConfigurationController ..> ConfigurationChanges
+    RulesController o-- Repositories
+    RulesController o-- Clock
+    RulesController ..> FacilityAnalyzer
+    RulesController ..> RulesResult
+    SupervisionController o-- RulesController
+    SupervisionController ..> ZoneAlert
+    ZoneAlert --> Alert
+    ZoneAlert --> Zone
+    SupervisionSnapshot o-- ZoneAlert : alerts
+    SupervisionSnapshot o-- ZoneActuator : actuators
+    SupervisionController ..> ZoneActuator
+    ZoneActuator --> Actuator
+    ZoneActuator --> Zone
+    LuminaApp o-- RulesController : un temporizador del servidor
+    ProtectedPage <|-- ConfigurationPage
+    ConfigurationPage *-- LiveData : configuración vigente
+    ConfigurationPage ..> ConfigurationController
+    ConfigurationPage ..> NumberField
+    Field <|-- NumberField
+    Panel <|-- AlertList
+    Panel <|-- EquipmentPanel
+    SupervisionPage ..> AlertList
+    SupervisionPage ..> EquipmentPanel
+    DashboardPage ..> EquipmentPanel : consulta
+    DashboardPage ..> OpenAlertsBanner : seguridad y administración
+    AppShell *-- AlertWatcher
+    AlertWatcher o-- SupervisionController
+    note for RulesController "Histéresis de 0,5 °C; respeta ventiladores manuales.
+La configuración se relee en cada evaluación."
+    note for ConfigurationController "ConfigRepository.modify: lectura estricta y autorización en transacción."
+    note for SupervisionController "Acciones mediante modify; conserva atendida_por y actualizada_en."
+```
+
+`ConfigurationChanges`, `RulesResult` y `ZoneAlert` son dataclasses inmutables.
+`max_reading_age_minutes` admite `None`. `SupervisionSnapshot` añade alertas localizadas y
+actuadores a las cámaras, zonas y sensores existentes. `Services.create` compone un único
+motor y lo comparte con configuración y supervisión. `require_actor` es una función
+auxiliar de autorización, sin dependencia de NiceGUI.
+
+`ConfigRepository.modify(change)` se implementa en `JsonConfigRepository` con lectura
+estricta y cerrojo por ruta. `JsonFile` comparte ese cerrojo con otras instancias del mismo
+proceso. `SensorSimulator.scenario(name)` añade los cinco escenarios del guion del Sprint 3.
+`AppShell.refresh_alerts()` permite actualizar el contador tras una acción incluso sin
+refresco periódico. `Theme.BADGE` estiliza dicho contador. No se añade ninguna clase de
+actividad ni procesamiento de históricos.
+
+`LuminaApp._evaluate_rules` y `_stop_rules` son asíncronos: ejecutan las reglas en un hilo
+y esperan el ciclo en curso al cerrar, sin bloquear el bucle de eventos. `ProtectedPage.act_async`
+revalida la sesión mediante `actor` y ejecuta también en un hilo las acciones que evalúan
+reglas. `ConfigurationPage` conserva un indicador de borrador y una revisión de edición
+para evitar que un refresco o el final de un guardado borren cambios pendientes.
+`JsonConfigRepository` comprueba finitud, rango y coherencia de los umbrales al leerlos.
+`RulesController` genera fallo también para el estado efectivo Error de lecturas no finitas.
+`AlertWatcher.initial` admite `None` si la lectura inicial falló; la primera lectura válida
+establece su referencia sin avisos de alertas anteriores, y permite recuperar el contador.
+
+## f) Ampliación del 18/11/2026: análisis de imagen con YOLO
+
+Fuentes: [vision.py](../lumina/controllers/vision.py), [yolo.py](../lumina/controllers/yolo.py),
+[captures.py](../lumina/repositories/captures.py), [rules.py](../lumina/controllers/rules.py),
+[camera.py](../lumina/views/components/camera.py) y
+[analizar_imagen.py](../scripts/analizar_imagen.py).
+
+```mermaid
+classDiagram
+    class PersonBox {
+        +float left
+        +float top
+        +float right
+        +float bottom
+        +float confidence
+    }
+    class PersonDetector {
+        <<abstract>>
+        +str name
+        +prepare() None
+        +detect(image: Image) tuple
+    }
+    class FrameReader {
+        <<abstract>>
+        +read(camera: Camera, now: datetime) Image
+    }
+    class YoloPersonDetector {
+        +int PERSON_CLASS
+        +float CONFIDENCE
+        +dict ENVIRONMENT
+        +__init__(model: str, folder: Path, confidence: float) None
+        +str name
+        +prepare() None
+        +detect(image: Image) tuple
+    }
+    class VideoFrameReader {
+        +str USER_AGENT
+        +__init__(folder: Path) None
+        +read(camera: Camera, now: datetime) Image
+        +wait_for_downloads(timeout: float) None
+    }
+    class VisionUnavailableError {
+        <<exception>>
+    }
+    class CapturePainter {
+        +int MAX_WIDTH
+        +paint(frame: Image, people: Sequence, camera: Camera, zone: Zone, moment: datetime) bytes
+    }
+    class VisionController {
+        +timedelta EXTERNAL_HOLD
+        +timedelta CAPTURE_LIFETIME
+        +timedelta RETRY_AFTER
+        +__init__(repositories: Repositories, clock: Clock, detector: PersonDetector, frames: FrameReader) None
+        +VisionStatus status
+        +step() list
+        +analyze(camera_id: str, image: Image) Camera
+    }
+    class VisionState {
+        STARTING
+        READY
+        UNAVAILABLE
+        <<enumeration>>
+    }
+    class VisionStatus {
+        +VisionState state
+        +str detail
+    }
+    class CaptureRepository {
+        <<abstract>>
+        +save(camera_id: str, moment: datetime, image: bytes) str
+        +path(reference: str) Path
+        +remove_unused(keep: Collection, older_than: datetime) int
+    }
+    class FileCaptureRepository {
+        +Pattern NAME
+        +__init__(folder: Path) None
+        +Path folder
+    }
+    PersonDetector <|-- YoloPersonDetector
+    FrameReader <|-- VideoFrameReader
+    CaptureRepository <|-- FileCaptureRepository
+    Services o-- VisionController : vision
+    Repositories o-- CaptureRepository : captures
+    VisionController o-- PersonDetector
+    VisionController o-- FrameReader
+    VisionController o-- Repositories
+    VisionController o-- Clock
+    VisionController ..> CapturePainter
+    VisionController ..> VisionStatus
+    VisionStatus --> VisionState
+    PersonDetector ..> PersonBox
+    YoloPersonDetector ..> VisionUnavailableError
+    VideoFrameReader ..> VisionUnavailableError
+    RulesController ..> Camera : personas en zona restringida
+    LuminaApp o-- VisionController : BackgroundCycle «análisis de imagen»
+    SupervisionPage ..> VisionController : estado
+    CameraTile ..> CameraFeed : restricted_presence
+    note for VisionController "Guarda el análisis en la cámara (personas, analizada_en, captura).
+Un análisis ajeno manda durante dos minutos."
+    note for YoloPersonDetector "Único módulo que importa ultralytics (y OpenCV en VideoFrameReader), al usarse."
+```
+
+`VisionController` no importa NiceGUI, YOLO ni OpenCV: recibe un `PersonDetector` y un
+`FrameReader`, que en los tests son dobles de prueba. `Services.create(..., detector, frames)` usa
+por defecto `YoloPersonDetector` y `VideoFrameReader`; `LuminaApp` los crea con `LUMINA_YOLO_MODEL`
+y la carpeta `descargas/`. `RulesController` añade una regla: una cámara cuyo análisis vigente
+(`FacilityAnalyzer.camera_sees_people`) ve personas en una zona restringida crea una alerta
+`PERSON_IN_RESTRICTED_ZONE` con su `capture` y enciende el LED y la alarma de la zona.
+`CameraGrid.shows` compara solo `Camera.signal`, de modo que un análisis nuevo actualiza los
+rótulos sin reiniciar el vídeo. `scripts/analizar_imagen.py` usa `VisionController.analyze` con
+una imagen concreta.

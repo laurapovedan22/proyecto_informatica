@@ -52,7 +52,7 @@ async def test_root_redirects_to_login(user: User) -> None:
     await user.should_see('Supervisión del supermercado y parking')
 
 
-@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil', '/supervision'])
+@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil', '/supervision', '/configuracion'])
 async def test_protected_pages_require_a_session(user: User, route: str) -> None:
     await user.open(route)
     await user.should_see('Iniciar sesión')

@@ -21,6 +21,11 @@ data/.lumina.lock
 # Copia de trabajo de data/ al ejecutar desde el código (la aplicación escribe en ella)
 datos-locales/
 
+# Análisis de imagen: modelo de YOLO y vídeos descargados, e imágenes capturadas
+descargas/
+*.pt
+data/capturas/
+
 # Sistema operativo / IDE
 .DS_Store
 .vscode/

@@ -1,4 +1,4 @@
-"""Reglas puras del Sprint 2: vigencia, ambiente, ocupación y movimiento."""
+"""Reglas puras del Sprint 2: vigencia, ambiente, ocupación y movimiento (y personas vistas por YOLO)."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from math import isfinite
 
 from ..models import (
+    Camera,
     CapacityStatus,
     ClimateStatus,
     Sensor,
@@ -46,6 +47,18 @@ class FacilityAnalyzer:
         ):
             return SensorState.STALE
         return SensorState.ACTIVE
+
+    @staticmethod
+    def camera_sees_people(camera: Camera, now: datetime, max_age_minutes: int | None) -> bool:
+        """El último análisis de YOLO vio a alguien y vale: cámara activa y, si hay vigencia, no caducado.
+
+        Es la misma regla de vigencia que la de las lecturas de los sensores.
+        """
+        if camera.status is not SensorStatus.ACTIVE or camera.people is None or camera.people <= 0:
+            return False
+        return not max_age_minutes or (
+            camera.analyzed_at is not None and now - camera.analyzed_at <= timedelta(minutes=max_age_minutes)
+        )
 
     @classmethod
     def health(cls, config: SystemConfig, sensors: Sequence[Sensor], now: datetime) -> tuple[SensorHealth, ...]:

@@ -40,8 +40,8 @@ def build(packager: Any, folder: Path, version: str) -> Path:
 def test_the_command_bundles_the_resources_but_not_the_development_tools(tmp_path: Path) -> None:
     packager = empaquetar.Packager(PROJECT_ROOT, tmp_path, onefile=False, clean=False)
     command: list[str] = packager.command(tmp_path / 'icono.png', tmp_path / 'datos')
-    assert command[command.index('--name') + 1] == 'Lumina Sprint 2'
-    assert command[command.index('--osx-bundle-identifier') + 1] == 'es.lumina.sprint2'
+    assert command[command.index('--name') + 1] == 'Lumina Sprint 3'
+    assert command[command.index('--osx-bundle-identifier') + 1] == 'es.lumina.sprint3'
     assert {'--windowed', '--noconfirm'} <= set(command)
     added = [command[index + 1] for index, item in enumerate(command) if item == '--add-data']
     assert f'{tmp_path / "datos"}{os.pathsep}data' in added
@@ -49,6 +49,7 @@ def test_the_command_bundles_the_resources_but_not_the_development_tools(tmp_pat
     assert any(item.endswith(f'{os.pathsep}nicegui') for item in added)
     excluded = {command[index + 1] for index, item in enumerate(command) if item == '--exclude-module'}
     assert {'mypy', 'PIL', 'pytest'} <= excluded
+    assert {'ultralytics', 'torch', 'torchvision', 'cv2'} <= excluded  # YOLO no viaja en el ejecutable
 
 
 def test_publishing_replaces_the_previous_version(packager: Any, tmp_path: Path) -> None:

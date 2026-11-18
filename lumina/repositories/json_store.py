@@ -19,7 +19,7 @@ from collections.abc import Mapping
 from datetime import datetime
 from enum import StrEnum
 from pathlib import Path
-from typing import TypeAlias, TypeVar, cast
+from typing import ClassVar, TypeAlias, TypeVar, cast
 
 JsonValue: TypeAlias = 'str | int | float | bool | list[JsonValue] | dict[str, JsonValue] | None'
 JsonObject: TypeAlias = dict[str, JsonValue]
@@ -41,10 +41,15 @@ class JsonFile:
     lanza :class:`DataFormatError` para que la interfaz lo muestre.
     """
 
+    _locks: ClassVar[dict[Path, threading.RLock]] = {}
+    _locks_guard: ClassVar[threading.Lock] = threading.Lock()
+
     def __init__(self, path: Path, *, grace_seconds: float = 3.0) -> None:
         self._path = path
         self._grace_seconds = grace_seconds
-        self._lock = threading.RLock()
+        # Repositorios distintos del mismo proceso comparten la transacción por ruta.
+        with self._locks_guard:
+            self._lock = self._locks.setdefault(path.resolve(), threading.RLock())
         self._cache: JsonObject | None = None
         self._version: tuple[int, int] | None = None
         self._invalid_since: float | None = None

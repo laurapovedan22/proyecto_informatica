@@ -10,7 +10,7 @@ from ..models import Permission, User
 
 
 class Route(StrEnum):
-    """URL de cada pantalla entregada en los Sprints 1 y 2."""
+    """URL de cada pantalla entregada en los Sprints 1 a 3."""
 
     ROOT = '/'
     LOGIN = '/login'
@@ -19,6 +19,7 @@ class Route(StrEnum):
     SUPERVISION = '/supervision'
     USERS = '/usuarios'
     PROFILE = '/perfil'
+    CONFIGURATION = '/configuracion'
 
 
 @dataclass(frozen=True, slots=True)
@@ -39,6 +40,7 @@ class Navigation:
     ITEMS: ClassVar[tuple[NavItem, ...]] = (
         NavItem(Route.DASHBOARD, 'Dashboard'),
         NavItem(Route.SUPERVISION, 'Supervisión', Permission.SUPERVISE),
+        NavItem(Route.CONFIGURATION, 'Configuración', Permission.CONFIGURE_SYSTEM),
         NavItem(Route.USERS, 'Usuarios', Permission.MANAGE_USERS),
         NavItem(Route.PROFILE, 'Mi perfil'),
     )

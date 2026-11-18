@@ -17,7 +17,7 @@ from pathlib import Path
 APP_NAME = 'Lumina'
 """Nombre que ve el usuario: título de la ventana y avisos."""
 
-APP_EDITION = 'Lumina Sprint 2'
+APP_EDITION = 'Lumina Sprint 3'
 """Nombre de esta entrega: el de su ejecutable y el de su carpeta de datos, para no mezclarlos con
 los de otras versiones de Lumina instaladas en el mismo equipo."""
 
@@ -52,6 +52,10 @@ def user_data_root(environ: Mapping[str, str] | None = None, *, platform: str = 
     return Path(env.get('XDG_DATA_HOME') or home / '.local' / 'share') / APP_EDITION.lower().replace(' ', '-')
 
 
+DOWNLOADS_DIR = (user_data_root() if FROZEN else Path(__file__).resolve().parent.parent) / 'descargas'
+"""Descargas del análisis de imagen: el modelo de YOLO y los vídeos de las cámaras (no se versionan)."""
+
+
 @dataclass(frozen=True, slots=True)
 class AppSettings:
     """Configuración del arranque. Cada campo puede sobrescribirse con una variable ``LUMINA_*``."""
@@ -73,13 +77,20 @@ class AppSettings:
     dark_mode: bool | None = None
     """``None`` sigue el modo claro/oscuro del sistema operativo."""
     refresh_seconds: float = 5.0
-    """Cada cuánto se releen los JSON para refrescar la interfaz (0 lo desactiva)."""
+    """Intervalo de reglas del servidor y refresco de las vistas (0 desactiva ambos)."""
     simulation: bool = True
     """Datos en vivo: en cada refresco la aplicación simula nuevas lecturas de los sensores que no
     escriba otra fuente (la maqueta IoT o ``scripts/simular_sensores.py``). ``False`` muestra solo lo
     que haya en los JSON."""
     demo_mode: bool = True
     """Muestra las cuentas de demostración en la pantalla de inicio de sesión."""
+    vision: bool = True
+    """Análisis de imagen: en cada refresco YOLO busca personas en un fotograma de cada cámara. Una
+    persona en una zona restringida enciende el LED y la alarma y abre una alerta con su imagen.
+    Necesita el paquete ``ultralytics``; sin él, la aplicación indica que no está disponible."""
+    yolo_model: str = 'yolo26n.pt'
+    """Modelo de YOLO: nombre de un modelo de ultralytics (se descarga la primera vez en ``descargas/``)
+    o ruta de un fichero ``.pt``."""
 
     @classmethod
     def from_env(cls, environ: Mapping[str, str] | None = None) -> AppSettings:
@@ -99,6 +110,8 @@ class AppSettings:
             refresh_seconds=env.number('LUMINA_REFRESH_SECONDS', defaults.refresh_seconds),
             simulation=env.flag('LUMINA_SIMULATION', defaults.simulation),
             demo_mode=env.flag('LUMINA_DEMO_MODE', defaults.demo_mode),
+            vision=env.flag('LUMINA_VISION', defaults.vision),
+            yolo_model=env.text('LUMINA_YOLO_MODEL', defaults.yolo_model),
         )
 
 

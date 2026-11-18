@@ -1,1 +1,3 @@
 nicegui[native]>=3.18,<4
+# Análisis de imagen con YOLO (personas en zonas restringidas). Instala también PyTorch y OpenCV.
+ultralytics>=8.4,<9

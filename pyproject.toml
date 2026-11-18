@@ -1,7 +1,7 @@
 [project]
 name = "lumina"
-version = "0.1.0"
-description = "Lumina · Sprint 2: sensores, aforo, ambiente y cámaras por rol (aplicación de escritorio con NiceGUI)."
+version = "0.3.0"
+description = "Lumina · Sprint 3: configuración, reglas, alertas, actuadores y análisis de imagen con YOLO (aplicación de escritorio con NiceGUI)."
 readme = "README.md"
 requires-python = ">=3.11"
 authors = [
@@ -10,7 +10,7 @@ authors = [
     { name = "Víctor Rodríguez Ortiz" },
     { name = "Ignacio Torres Priego" },
 ]
-dependencies = ["nicegui[native]>=3.18,<4"]
+dependencies = ["nicegui[native]>=3.18,<4", "ultralytics>=8.4,<9"]
 
 [project.optional-dependencies]
 dev = [
@@ -23,6 +23,12 @@ python_version = "3.11"
 strict = true
 warn_unreachable = true
 files = ["main.py", "lumina", "scripts", "tests"]
+
+[[tool.mypy.overrides]]
+# YOLO, PyTorch y OpenCV se cargan solo al analizar imágenes y pueden no estar instalados: se tratan como Any.
+module = ["ultralytics", "ultralytics.*", "torch", "torch.*", "cv2", "cv2.*", "numpy", "numpy.*"]
+ignore_missing_imports = true
+follow_imports = "skip"
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

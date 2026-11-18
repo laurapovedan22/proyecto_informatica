@@ -9,6 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from collections.abc import Callable, Iterable
+from math import isfinite
 from typing import ClassVar, Generic, TypeVar
 
 from ..models import (
@@ -40,7 +41,7 @@ from .interfaces import (
     SensorRepository,
     UserRepository,
 )
-from .json_store import JsonFile, JsonObject, Record, timestamp_to_json
+from .json_store import DataFormatError, JsonFile, JsonObject, Record, timestamp_to_json
 
 ItemT = TypeVar('ItemT')
 EntityT = TypeVar('EntityT', bound=Identifiable)
@@ -204,6 +205,9 @@ class JsonCameraRepository(JsonEntityCollection[Camera], CameraRepository):
             zone_id=record.text('zona'),
             stream_url=record.optional_text('url'),
             status=record.optional_choice('estado', SensorStatus) or SensorStatus.ACTIVE,
+            people=record.optional_integer('personas'),
+            analyzed_at=record.optional_timestamp('analizada_en'),
+            capture=record.optional_text('captura'),
         )
 
     def _encode(self, item: Camera) -> JsonObject:
@@ -213,6 +217,9 @@ class JsonCameraRepository(JsonEntityCollection[Camera], CameraRepository):
             'zona': item.zone_id,
             'url': item.stream_url,
             'estado': item.status.value,
+            'personas': item.people,
+            'analizada_en': timestamp_to_json(item.analyzed_at),
+            'captura': item.capture,
         }
 
 
@@ -260,6 +267,7 @@ class JsonAlertRepository(JsonEntityCollection[Alert], AlertRepository):
             sensor_id=record.optional_text('sensor'),
             handled_by=record.optional_text('atendida_por'),
             updated_at=record.optional_timestamp('actualizada_en'),
+            capture=record.optional_text('captura'),
         )
 
     def _encode(self, item: Alert) -> JsonObject:
@@ -273,6 +281,7 @@ class JsonAlertRepository(JsonEntityCollection[Alert], AlertRepository):
             'sensor': item.sensor_id,
             'atendida_por': item.handled_by,
             'actualizada_en': timestamp_to_json(item.updated_at),
+            'captura': item.capture,
         }
 
 
@@ -312,8 +321,11 @@ class JsonConfigRepository(ConfigRepository):
         self._file = file
 
     def load(self) -> SystemConfig:
+        return self._load()
+
+    def _load(self, *, strict: bool = False) -> SystemConfig:
         defaults = SystemConfig()
-        record = Record(self._file.read(), self._file.name)
+        record = Record(self._file.read(strict=strict), self._file.name)
         zones = tuple(
             Zone(id=zone.text('id'), name=zone.text('nombre'), restricted=zone.flag('restringida', default=False))
             for zone in record.records('zonas')
@@ -322,7 +334,7 @@ class JsonConfigRepository(ConfigRepository):
         parking_spaces = record.optional_integer('plazas_parking')
         fan_threshold = record.optional_number('umbral_temperatura')
         critical = record.optional_number('temperatura_critica')
-        return SystemConfig(
+        config = SystemConfig(
             facility_name=record.optional_text('establecimiento') or defaults.facility_name,
             max_occupancy=defaults.max_occupancy if max_occupancy is None else max_occupancy,
             parking_spaces=defaults.parking_spaces if parking_spaces is None else parking_spaces,
@@ -332,6 +344,22 @@ class JsonConfigRepository(ConfigRepository):
             main_zone_id=record.optional_text('zona_principal') or defaults.main_zone_id,
             zones=zones,
         )
+        if any(
+            not isfinite(value) or not -10 <= value <= 60
+            for value in (config.fan_threshold, config.critical_temperature)
+        ) or config.critical_temperature <= config.fan_threshold:
+            raise DataFormatError(
+                f'{self._file.name}: temperaturas finitas entre -10 y 60 °C; la crítica debe superar el umbral'
+            )
+        return config
+
+    def modify(self, change: Callable[[SystemConfig], SystemConfig]) -> SystemConfig:
+        with self._file.lock:
+            current = self._load(strict=True)
+            updated = change(current)
+            if updated != current:
+                self.save(updated)
+            return updated
 
     def save(self, config: SystemConfig) -> None:
         with self._file.lock:

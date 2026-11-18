@@ -12,9 +12,10 @@ from typing import Any, ClassVar
 from nicegui import app, ui
 from nicegui.timer import Timer
 
-from .controllers import Services
-from .repositories import Repositories
-from .settings import APP_NAME, FROZEN, AppSettings
+from .controllers import RulesResult, Services
+from .controllers.yolo import VideoFrameReader, YoloPersonDetector
+from .repositories import DataFiles, Repositories
+from .settings import APP_NAME, DOWNLOADS_DIR, FROZEN, AppSettings
 from .views import Router, Theme, ViewContext
 from .views.components import Box, Button, Heading, Text
 from .views.pages import PROTECTED_PAGES, PUBLIC_PAGES
@@ -109,11 +110,19 @@ class LuminaApp:
     """Textos de la ventana y del menú de la aplicación (pywebview los trae en inglés)."""
 
     def __init__(self, settings: AppSettings, *, services: Services | None = None) -> None:
+        self._rules_timer: Timer | None = None
+        self._rules_task: asyncio.Task[RulesResult] | None = None
+        self._closing_rules = False
         self._settings = settings
-        self._services = services or Services.create(Repositories.from_json_dir(settings.data_dir))
+        self._services = services or Services.create(
+            Repositories.from_json_dir(settings.data_dir),
+            detector=YoloPersonDetector(settings.yolo_model, DOWNLOADS_DIR),
+            frames=VideoFrameReader(DOWNLOADS_DIR / 'videos', local_urls={Theme.ASSETS_URL: settings.assets_dir}),
+        )
         self._simulation = BackgroundCycle(
             'simulación de sensores', lambda: self._services.simulation.step(settings.refresh_seconds)
         )
+        self._vision = BackgroundCycle('análisis de imagen', self._services.vision.step)
 
     @property
     def services(self) -> Services:
@@ -125,14 +134,25 @@ class LuminaApp:
         return self._settings.simulation and self._settings.refresh_seconds > 0
 
     @property
+    def analyzes(self) -> bool:
+        """Análisis de imagen con YOLO: hace falta activarlo y un intervalo de refresco."""
+        return self._settings.vision and self._settings.refresh_seconds > 0
+
+    @property
     def reloads(self) -> bool:
         """Recarga en caliente activa (nunca en el ejecutable, que no tiene ficheros ``.py`` que vigilar)."""
         return self._settings.reload and not FROZEN
 
     def setup(self) -> None:
         """Registra recursos estáticos, colores y páginas."""
+        if self._settings.refresh_seconds > 0 and self._rules_timer is None:
+            self._rules_timer = app.timer(self._settings.refresh_seconds, self._evaluate_rules, immediate=False)
+            app.on_shutdown(self._stop_rules)
         Theme.install()
         app.add_static_files(Theme.ASSETS_URL, self._settings.assets_dir)
+        captures = self._settings.data_dir / DataFiles.CAPTURES  # imágenes en las que YOLO ha visto personas
+        captures.mkdir(parents=True, exist_ok=True)
+        app.add_static_files(Theme.CAPTURES_URL, captures)
         app.on_page_exception(self._error_page)
         router = Router(ViewContext(self._services, self._settings))
         router.add_root()
@@ -142,7 +162,35 @@ class LuminaApp:
             router.add_protected(protected_page)
         if self.simulates:
             # Una primera lectura al arrancar: las pantallas ya abren con datos de ahora mismo.
+            # Las reglas evalúan después esas lecturas como las de la maqueta física.
             self._simulation.start(self._settings.refresh_seconds, immediate=True)
+        if self.analyzes:
+            self._vision.start(self._settings.refresh_seconds, immediate=True)
+
+    async def _evaluate_rules(self) -> None:
+        """Evalúa fuera del bucle de eventos; cualquier fallo del ciclo permite reintentarlo."""
+        if self._closing_rules or self._rules_task is not None:
+            return
+        task = asyncio.create_task(asyncio.to_thread(self._services.rules.evaluate))
+        self._rules_task = task
+        try:
+            await asyncio.shield(task)
+        except Exception:
+            log.exception('No se han podido evaluar las reglas de seguridad')
+        finally:
+            if task.done():
+                self._rules_task = None
+
+    async def _stop_rules(self) -> None:
+        """Impide nuevos ciclos y espera la escritura en curso antes de cerrar el servidor."""
+        self._closing_rules = True
+        if self._rules_timer is not None:
+            self._rules_timer.cancel()
+        if self._rules_task is not None:
+            try:
+                await asyncio.shield(self._rules_task)
+            except Exception:
+                log.exception('No se ha podido completar el último ciclo de reglas')
 
     def run(self) -> None:
         """Configura la aplicación y la abre en una ventana de escritorio (o en el navegador)."""

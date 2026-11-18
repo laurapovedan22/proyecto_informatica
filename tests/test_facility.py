@@ -251,8 +251,8 @@ def test_unconfigured_zones_keep_their_identifier(repositories: Repositories, se
     assert next(item for item in snapshot.zones if item.zone.id == 'otra-zona').detected is True
 
 
-def test_sprint_two_queries_do_not_read_future_modules(services: Services, data_dir: Path) -> None:
-    for name in ('actuadores.json', 'alertas.json', 'historicos.json'):
+def test_sprint_three_queries_do_not_read_history(services: Services, data_dir: Path) -> None:
+    for name in ('historicos.json',):
         (data_dir / name).write_text('JSON dañado deliberadamente', encoding='utf-8')
     assert services.facility.status().store.occupied == 86
     assert len(services.supervision.snapshot().cameras) == 2

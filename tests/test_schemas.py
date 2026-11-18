@@ -86,6 +86,9 @@ def first(document: Any, key: str) -> dict[str, Any]:
         ('sensores.json', lambda doc: first(doc, 'sensores').update(valor='alto')),
         ('actuadores.json', lambda doc: first(doc, 'actuadores').update(encendido='sí')),
         ('alertas.json', lambda doc: first(doc, 'alertas').update(estado='cerrada')),
+        ('alertas.json', lambda doc: first(doc, 'alertas').update(captura='../usuarios.json')),
+        ('sensores.json', lambda doc: first(doc, 'camaras').update(personas=-1)),
+        ('sensores.json', lambda doc: first(doc, 'camaras').update(personas=True)),
         ('historicos.json', lambda doc: first(doc, 'lecturas').update(fecha_hora='14/10/2026 9:00')),
         ('configuracion.json', lambda doc: doc.update(aforo_maximo=-1)),
         ('configuracion.json', lambda doc: doc.update(zona_pricipal='tienda')),  # errata: campo desconocido

@@ -37,10 +37,11 @@
         "tipo": {
           "enum": [
             "movimiento_zona_restringida",
+            "persona_zona_restringida",
             "temperatura_critica",
             "fallo_sensor"
           ],
-          "description": "Situación que la generó."
+          "description": "Situación que la generó. persona_zona_restringida: YOLO vio a una persona en la imagen de una cámara de una zona restringida."
         },
         "zona": {
           "type": "string",
@@ -58,7 +59,7 @@
             "en_revision",
             "resuelta"
           ],
-          "description": "Estado de la incidencia.",
+          "description": "Activa (pendiente), En revisión o Resuelta; pendiente y en_revision son abiertas. Solo una abierta por tipo, zona y sensor.",
           "default": "pendiente"
         },
         "descripcion": {
@@ -73,7 +74,7 @@
             "string",
             "null"
           ],
-          "description": "Identificador del sensor que la detectó."
+          "description": "Identificador del sensor o de la cámara que la detectó."
         },
         "atendida_por": {
           "type": [
@@ -89,6 +90,14 @@
           ],
           "pattern": "^\\d{4}-\\d{2}-\\d{2}T\\d{2}:\\d{2}(:\\d{2}(\\.\\d+)?)?(Z|[+-]\\d{2}:\\d{2})?$",
           "description": "Último cambio de estado. ISO 8601 en hora local (2026-10-14T14:30:00)."
+        },
+        "captura": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "pattern": "^capturas/[A-Za-z0-9_-]+\\.jpg$",
+          "description": "Imagen en la que YOLO vio a la persona, relativa a la carpeta de datos (capturas/….jpg)."
         }
       }
     }
