@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import date, datetime
 from math import isfinite
 
@@ -68,3 +69,15 @@ class Formatter:
     @staticmethod
     def plural(count: int, singular: str, plural: str) -> str:
         return f'{count} {singular if count == 1 else plural}'
+
+    @classmethod
+    def people(cls, count: int) -> str:
+        """Personas que ve YOLO: ``nadie a la vista``, ``1 persona``, ``3 personas``."""
+        return 'nadie a la vista' if count <= 0 else cls.plural(count, 'persona', 'personas')
+
+    @staticmethod
+    def capture_url(reference: str | None) -> str | None:
+        """Dirección de una captura (``capturas/<fichero>.jpg``); ``None`` si no lo es."""
+        if reference is None or not re.fullmatch(r'capturas/[\w-]+\.jpg', reference):
+            return None
+        return f'/{reference}'

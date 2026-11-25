@@ -90,3 +90,29 @@ class SelectField(Field):
     def value(self) -> str | None:
         value = self.select.value
         return value if isinstance(value, str) else None
+
+
+class NumberField(Field):
+    """Campo numérico con límites."""
+
+    def __init__(
+        self,
+        label: str,
+        *,
+        value: float | None,
+        minimum: float | None = None,
+        maximum: float | None = None,
+        step: float = 1,
+        precision: int | None = None,
+        suffix: str | None = None,
+    ) -> None:
+        super().__init__(label)
+        with self:
+            self.input = ui.number(value=value, min=minimum, max=maximum, step=step, precision=precision,
+                                   suffix=suffix)
+        self.input.props('outlined dense').classes(Theme.FIELD_CONTROL)
+
+    @property
+    def value(self) -> float | None:
+        value = self.input.value
+        return float(value) if isinstance(value, int | float) else None

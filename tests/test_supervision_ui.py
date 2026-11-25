@@ -27,6 +27,7 @@ from lumina.views.routes import Route
 from scripts.simular_sensores import SensorSimulator
 
 MAIN_FILE = Path(__file__).resolve().parent.parent / 'main.py'
+ASSETS_DIR = MAIN_FILE.parent / 'assets'
 LOGIN_RETRIES = 40
 
 
@@ -61,7 +62,7 @@ async def test_all_dashboards_show_occupancy_climate_units_and_reading_times(use
         'Disponible en este panel',
     ):
         await user.should_see(text)
-    assert DashboardPage.CURRENT_SPRINT == 2
+    assert DashboardPage.CURRENT_SPRINT == 3
     assert not any(
         button.props.get('href') == Route.DASHBOARD for button in user.find(Button).elements if button.text == 'Abrir'
     )
@@ -105,9 +106,9 @@ async def test_security_and_admin_see_cameras_zones_and_sensor_values(user: User
         'Última actualización',
     ):
         await user.should_see(text)
-    await user.should_not_see('Control de equipos')
+    await user.should_see('Control de equipos')
     await user.should_not_see('Marcar revisada')
-    await user.should_not_see('Alertas')
+    await user.should_see('Alertas')
     assert user.find(marker='camera-cam-almacen').elements
     assert user.find(marker='camera-cam-parking').elements
     assert user.find(marker='video-cam-almacen').elements  # vídeo real, no una vista simulada
@@ -169,12 +170,17 @@ async def test_camera_url_is_rendered_and_offline_camera_keeps_zone_detection(
         await user.should_see('Parking · Sin datos')
 
 
-async def test_cameras_play_a_supermarket_video_from_the_internet(user: User, repositories: Repositories) -> None:
-    """Cada cámara reproduce en bucle, sin sonido ni controles, el vídeo de su URL de Internet."""
+async def test_cameras_play_a_supermarket_surveillance_video(user: User, repositories: Repositories) -> None:
+    """Cada cámara reproduce en bucle, sin sonido ni controles, una grabación real de videovigilancia.
+
+    Los datos de ejemplo usan copias locales, servidas por la aplicación en ``/assets/camaras``, de dos
+    vídeos de dominio público de Wikimedia Commons: se ven sin conexión y YOLO analiza el mismo fichero.
+    """
     await enter(user, 'seguridad')
     await user.open('/supervision')
     for camera in repositories.cameras.list_all():
-        assert camera.stream_url is not None and camera.stream_url.startswith('https://')
+        assert camera.stream_url is not None and camera.stream_url.startswith('/assets/camaras/')
+        assert (ASSETS_DIR / camera.stream_url.removeprefix('/assets/')).is_file()
         assert CameraTile.is_video(camera.stream_url)
         video = user.find(marker=f'video-{camera.id}').elements.pop()
         assert isinstance(video, ui.video)
@@ -187,6 +193,8 @@ async def test_cameras_play_a_supermarket_video_from_the_internet(user: User, re
         await user.should_see('EN DIRECTO')
         await user.should_see('· Cámara 1 · Almacén')
         await user.should_not_see('Sin señal de vídeo')
+    response = await user.http_client.get('/assets/camaras/tienda.webm')
+    assert response.status_code == 200 and response.content[:4] == b'\x1a\x45\xdf\xa3'  # cabecera WebM
 
 
 def test_video_urls_are_recognised_by_their_extension() -> None:

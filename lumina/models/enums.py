@@ -183,6 +183,8 @@ class AlertType(StrEnum):
     """Situaciones anómalas que generan una alerta."""
 
     RESTRICTED_MOTION = 'movimiento_zona_restringida'
+    PERSON_IN_RESTRICTED_ZONE = 'persona_zona_restringida'
+    """YOLO ha visto a una persona en la imagen de una cámara de una zona restringida."""
     CRITICAL_TEMPERATURE = 'temperatura_critica'
     SENSOR_FAILURE = 'fallo_sensor'
 
@@ -193,6 +195,7 @@ class AlertType(StrEnum):
 
 _ALERT_TYPE_LABELS: dict[AlertType, str] = {
     AlertType.RESTRICTED_MOTION: 'Movimiento en zona restringida',
+    AlertType.PERSON_IN_RESTRICTED_ZONE: 'Persona en zona restringida',
     AlertType.CRITICAL_TEMPERATURE: 'Temperatura crítica',
     AlertType.SENSOR_FAILURE: 'Fallo de sensor',
 }
@@ -215,7 +218,7 @@ class AlertStatus(StrEnum):
 
 
 _ALERT_STATUS_LABELS: dict[AlertStatus, str] = {
-    AlertStatus.PENDING: 'Pendiente',
+    AlertStatus.PENDING: 'Activa',
     AlertStatus.IN_REVIEW: 'En revisión',
     AlertStatus.RESOLVED: 'Resuelta',
 }

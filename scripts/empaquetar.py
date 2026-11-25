@@ -2,7 +2,7 @@
 
 Uso, desde la carpeta del proyecto y con las dependencias de ``requirements-dev.txt``::
 
-    python scripts/empaquetar.py               # macOS: «dist/Lumina Sprint 2.app» · Windows: carpeta en dist/
+    python scripts/empaquetar.py               # macOS: «dist/Lumina Sprint 3.app» · Windows: carpeta en dist/
     python scripts/empaquetar.py --un-fichero  # Windows/Linux: un único ejecutable (arranca más despacio)
 
 PyInstaller crea el ejecutable del sistema y la arquitectura en los que se ejecuta: para
@@ -38,7 +38,7 @@ from lumina import __version__
 from lumina.settings import APP_EDITION
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
-BUNDLE_IDENTIFIER = 'es.lumina.sprint2'
+BUNDLE_IDENTIFIER = 'es.lumina.sprint3'
 
 
 class AppIcon:
@@ -75,6 +75,9 @@ class Packager:
     DEVELOPMENT_ONLY = ('mypy', 'PIL', 'pytest', '_pytest')
     """Paquetes que PyInstaller arrastraría sin hacer falta: pydantic trae mypy por su plugin y
     NiceGUI usa Pillow solo si está instalado (aquí lo está para crear el icono)."""
+    WITHOUT_VISION = ('ultralytics', 'torch', 'torchvision', 'cv2')
+    """El análisis de imagen con YOLO no viaja en el ejecutable: PyTorch lo haría pesar cerca de 1 GB.
+    El ejecutable funciona igual y en Supervisión indica que el análisis no está disponible."""
 
     def __init__(self, project: Path, work: Path, *, onefile: bool, clean: bool) -> None:
         self._project = project
@@ -114,7 +117,7 @@ class Packager:
             *self._data(self._project / 'assets', 'assets'),
             *self._data(sample_data, 'data'),
         ]
-        for module in self.DEVELOPMENT_ONLY:
+        for module in (*self.DEVELOPMENT_ONLY, *self.WITHOUT_VISION):
             command += ['--exclude-module', module]
         if self._onefile:
             command.append('--onefile')

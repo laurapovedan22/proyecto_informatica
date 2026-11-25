@@ -7,6 +7,7 @@ solicitar cuenta, entrar con cada perfil, administrar usuarios, editar el perfil
 
 from __future__ import annotations
 
+import asyncio
 import json
 from pathlib import Path
 from typing import Any
@@ -52,7 +53,7 @@ async def test_root_redirects_to_login(user: User) -> None:
     await user.should_see('Supervisión del supermercado y parking')
 
 
-@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil', '/supervision'])
+@pytest.mark.parametrize('route', ['/dashboard', '/usuarios', '/perfil', '/supervision', '/configuracion'])
 async def test_protected_pages_require_a_session(user: User, route: str) -> None:
     await user.open(route)
     await user.should_see('Iniciar sesión')
@@ -217,6 +218,19 @@ async def test_admin_edits_an_account(user: User, data_dir: Path) -> None:
     await user.should_see('Datos del usuario actualizados.')
     marta = accounts(data_dir)['usr-marta']
     assert (marta['nombre'], marta['email']) == ('Marta García Ruiz', 'marta.garcia.ruiz@lumina.es')
+
+
+async def test_closing_the_page_with_a_dialog_open_leaves_no_error(
+    user: User, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Revisión del 25/11/2026: al cerrar la pestaña con un diálogo abierto, NiceGUI ya lo ha borrado."""
+    await admin_on_users_page(user)
+    user.find(marker='edit-usr-marta').click()
+    await user.should_see('Editar usuario')
+    assert user.client is not None
+    user.client.delete()  # como al cerrar la pestaña: NiceGUI borra la página, también el diálogo abierto
+    await asyncio.sleep(0.1)  # termina la espera del diálogo
+    assert not [record.getMessage() for record in caplog.records if record.levelname == 'ERROR']
 
 
 async def test_admin_deactivates_an_account(user: User, data_dir: Path) -> None:

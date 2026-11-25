@@ -6,13 +6,16 @@ modificar por accidente datos compartidos entre usuarios.
 
 En el Sprint 1 solo los usuarios tienen comportamiento. El resto de entidades definen el
 contrato de datos de sensores, cámaras, actuadores, alertas e históricos (ver
-``docs/esquemas-json.md``) sobre el que se construirán los Sprints 2 a 4.
+``docs/esquemas-json.md``) sobre el que se construirán los Sprints 2 a 4. Las cámaras guardan
+además el último análisis de imagen con YOLO (ampliación del 18/11/2026).
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass, field, replace
 from datetime import date, datetime
+from typing import ClassVar
+from urllib.parse import urlparse
 
 from .enums import (
     ActuatorMode,
@@ -108,7 +111,7 @@ class Zone:
 
 @dataclass(frozen=True, slots=True)
 class SystemConfig:
-    """Parámetros del establecimiento (``configuracion.json``); se editarán en el Sprint 3."""
+    """Parámetros del establecimiento (``configuracion.json``); editables en el Sprint 3."""
 
     facility_name: str = 'Supermercado Lumina'
     max_occupancy: int = 150
@@ -144,13 +147,42 @@ class Sensor:
 
 @dataclass(frozen=True, slots=True)
 class Camera:
-    """Cámara de vigilancia. ``stream_url`` admite una imagen o un flujo MJPEG."""
+    """Cámara de vigilancia con el último análisis de imagen de YOLO.
+
+    ``stream_url`` admite un vídeo, una imagen o un flujo MJPEG. El análisis funciona como la lectura
+    de un sensor: ``people`` son las personas que YOLO vio en el último fotograma analizado
+    (``None`` = sin analizar o sin imagen), ``analyzed_at`` cuándo, y ``capture`` la imagen guardada
+    con las personas recuadradas (``capturas/…jpg``, solo si vio a alguien).
+    """
+
+    VIDEO_EXTENSIONS: ClassVar[tuple[str, ...]] = ('.mp4', '.m4v', '.webm', '.ogv', '.ogg', '.mov')
 
     id: str
     name: str
     zone_id: str
     stream_url: str | None = None
     status: SensorStatus = SensorStatus.ACTIVE
+    people: int | None = None
+    analyzed_at: datetime | None = None
+    capture: str | None = None
+
+    @property
+    def signal(self) -> tuple[str, str, str, str | None, SensorStatus]:
+        """Lo que se ve en pantalla de la cámara, sin el análisis (que cambia en cada ciclo)."""
+        return (self.id, self.name, self.zone_id, self.stream_url, self.status)
+
+    @property
+    def analysis(self) -> tuple[int | None, datetime | None, str | None]:
+        return (self.people, self.analyzed_at, self.capture)
+
+    @classmethod
+    def is_video_url(cls, url: str) -> bool:
+        """Las URL de vídeo se reconocen por la extensión del fichero (sin contar la consulta)."""
+        return urlparse(url).path.lower().endswith(cls.VIDEO_EXTENSIONS)
+
+    def with_analysis(self, people: int | None, at: datetime, capture: str | None = None) -> Camera:
+        """Resultado de analizar un fotograma (``people=None``: no había imagen que analizar)."""
+        return replace(self, people=people, analyzed_at=at, capture=capture)
 
 
 @dataclass(frozen=True, slots=True)
@@ -177,8 +209,11 @@ class Alert:
     status: AlertStatus = AlertStatus.PENDING
     description: str = ''
     sensor_id: str | None = None
+    """Sensor o cámara que la detectó."""
     handled_by: str | None = None
     updated_at: datetime | None = None
+    capture: str | None = None
+    """Imagen en la que YOLO vio a la persona (``capturas/…jpg``), en las alertas de las cámaras."""
 
     @property
     def is_open(self) -> bool:

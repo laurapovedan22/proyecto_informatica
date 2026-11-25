@@ -18,9 +18,10 @@ from jsonschema import Draft202012Validator
 
 from lumina.app import BackgroundCycle, LuminaApp
 from lumina.controllers import FixedClock, LiveSimulator, Services
-from lumina.models import Sensor, SensorStatus, SensorType
+from lumina.models import ActuatorMode, AlertType, Sensor, SensorStatus, SensorType
 from lumina.repositories import DataFormatError, Repositories
 from lumina.settings import AppSettings
+from scripts.simular_sensores import SensorSimulator
 
 PROJECT_ROOT = Path(__file__).resolve().parent.parent
 
@@ -219,3 +220,45 @@ def test_sensor_types_are_all_simulated() -> None:
     assert {member.value for member in SensorType} == {
         'temperatura', 'humedad', 'movimiento', 'distancia', 'contador_personas', 'contador_vehiculos',
     }
+
+
+# --- Sprint 3: las reglas evalúan las lecturas vivas como las de la maqueta -------------------
+
+
+def test_demo_scenarios_keep_priority_over_the_live_simulation(
+    services: Services, repositories: Repositories, clock: FixedClock
+) -> None:
+    """``--escenario critica`` o ``calor`` siguen funcionando aunque la aplicación esté simulando."""
+    scenarios = SensorSimulator(repositories, clock, random.Random(1))
+    services.simulation.step()
+    scenarios.scenario('critica')
+    clock.advance(timedelta(seconds=5))
+    services.simulation.step()  # no toca lo que acaba de escribir el escenario
+    created = services.rules.evaluate().alerts_created
+    critical = {alert.sensor_id for alert in created if alert.type is AlertType.CRITICAL_TEMPERATURE}
+    assert critical == {'temp-tienda', 'temp-almacen'}
+
+    scenarios.scenario('calor')
+    services.supervision.set_automatic('ventilador-tienda', services.users.get('usr-carlos'))
+    clock.advance(timedelta(seconds=30))
+    services.simulation.step()
+    services.rules.evaluate()
+    fan = repositories.actuators.get('ventilador-tienda')
+    assert fan is not None and fan.is_on and fan.mode is ActuatorMode.AUTOMATIC  # umbral + 1 °C
+
+
+def test_live_motion_in_a_restricted_zone_raises_a_single_alert(
+    services: Services, repositories: Repositories, clock: FixedClock
+) -> None:
+    class FrequentMotion(LiveSimulator):
+        MOTION_GAP_SECONDS = 10.0
+
+    live = FrequentMotion(repositories, clock, rng=random.Random(5))
+    created: list[str] = []
+    for _ in range(40):
+        clock.advance(timedelta(seconds=5))
+        live.step()
+        created += [alert.sensor_id or '' for alert in services.rules.evaluate().alerts_created]
+    assert 'mov-salida-emergencia' in created and 'mov-puerta-personal' in created
+    assert len(created) == len(set(created))  # una sola alerta abierta por sensor, aunque se repita la detección
+    assert 'mov-almacen' not in created  # ya tenía una alerta abierta en los datos de ejemplo

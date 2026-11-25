@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:lumina:esquema:configuracion",
   "title": "configuracion.json",
-  "description": "Parámetros del establecimiento (se editarán en el Sprint 3: H3.1). Si falta un campo se usa su valor por defecto.",
+  "description": "Parámetros del establecimiento, editables por administración en el Sprint 3 (H3.1). Se conservan los valores por defecto cuando falta un campo.",
   "type": "object",
   "required": [],
   "additionalProperties": false,
@@ -27,12 +27,12 @@
     "umbral_temperatura": {
       "type": "number",
       "default": 26.0,
-      "description": "°C a partir de los que debe encenderse el ventilador."
+      "description": "°C que debe superar la temperatura para encender el ventilador automático; se apaga a umbral − 0,5 °C."
     },
     "temperatura_critica": {
       "type": "number",
       "default": 30.0,
-      "description": "°C que generan un aviso al personal de seguridad."
+      "description": "°C a partir de los que se genera una alerta (incluye igualdad); debe ser mayor que el umbral del ventilador."
     },
     "antiguedad_maxima_lectura_min": {
       "type": [

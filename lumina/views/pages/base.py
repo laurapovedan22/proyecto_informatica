@@ -8,6 +8,7 @@ en cada acción y en cada refresco mientras la página sigue abierta.
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from abc import ABC, abstractmethod
 from collections.abc import Callable
@@ -137,6 +138,40 @@ class ProtectedPage(Page):
         """Como :meth:`run_action`, pero en nombre del usuario vigente (ver :meth:`actor`)."""
         actor = self.actor()
         return actor is not None and self.run_action(lambda: action(actor), success=success)
+
+    async def act_async(
+        self,
+        action: Callable[[User], object],
+        *,
+        success: str | None = None,
+        then: Callable[[], object] | None = None,
+    ) -> bool:
+        """Revalida la sesión y ejecuta acciones con E/S fuera del bucle de eventos.
+
+        Al terminar, los avisos y ``then`` (p. ej., releer los datos) se ejecutan en la página y no en
+        el botón pulsado: mientras se esperaba, un refresco ha podido volver a dibujar su bloque y
+        borrar el botón (NiceGUI redibuja en segundo plano).
+        """
+        actor = self.actor()
+        if actor is None:
+            return False
+        client = self.shell.client
+        try:
+            await asyncio.to_thread(action, actor)
+        except LuminaError as error:
+            with client:
+                ui.notify(str(error), type='negative')
+            return False
+        except (DataFormatError, OSError) as error:
+            with client:
+                self.report_data_error(error, 'No se ha completado la acción')
+            return False
+        with client:
+            if success:
+                ui.notify(success, type='positive')
+            if then is not None:
+                then()
+        return True
 
     def build(self) -> None:
         Theme.apply_to_page()

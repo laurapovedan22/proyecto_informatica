@@ -1,11 +1,12 @@
-"""Genera lecturas del Sprint 2 mediante repositorios con escritura atómica y lectura estricta.
+"""Genera lecturas y escenarios del Sprint 3 mediante repositorios con escritura atómica y lectura estricta.
+
+La aplicación ya simula por sí misma lecturas en vivo (:class:`lumina.controllers.LiveSimulator`);
+mientras este script escribe un sensor (también con ``--escenario``), ella se lo deja y lo retoma dos
+minutos después de su última escritura. Por defecto usa la carpeta de datos de la aplicación
+(``datos-locales/``).
 
 Uso: ``python scripts/simular_sensores.py --intervalo 3 --movimiento``.
 Sin ``--movimiento`` se conservan las detecciones y sus horas originales.
-
-La aplicación ya simula por sí misma lecturas en vivo (:class:`lumina.controllers.LiveSimulator`);
-mientras este script escribe un sensor, ella se lo deja y lo retoma dos minutos después.
-Por defecto escribe en la misma carpeta de datos que la aplicación (``datos-locales/``).
 """
 
 from __future__ import annotations
@@ -64,6 +65,45 @@ class SensorSimulator:
             self._repositories.sensors.modify(sensor.id, change)
         return updated
 
+    def scenario(self, name: str) -> list[Sensor]:
+        """Escenario determinista de demostración; cada sensor se modifica de forma atómica.
+
+        A diferencia de la variación aleatoria, restablece las lecturas utilizadas para
+        poder repetir la demostración después del escenario de fallo.
+        """
+        config = self._repositories.config.load()
+        if name not in ('calor', 'critica', 'movimiento', 'normal', 'fallo'):
+            raise ValueError('Escenario desconocido.')
+        updated: list[Sensor] = []
+
+        def change(current: Sensor) -> Sensor:
+            value = current.value
+            status = SensorStatus.ACTIVE
+            if current.type is SensorType.TEMPERATURE:
+                if name == 'calor':
+                    value = config.fan_threshold + 1
+                elif name == 'critica':
+                    value = config.critical_temperature
+                elif name == 'normal':
+                    value = config.fan_threshold - 1
+                elif name == 'fallo':
+                    status = SensorStatus.ERROR
+                else:
+                    return current
+            elif current.type is SensorType.MOTION and current.zone_id == 'almacen':
+                if name not in ('movimiento', 'normal'):
+                    return current
+                value = 1.0 if name == 'movimiento' else 0.0
+            else:
+                return current
+            result = replace(current, value=value, status=status, updated_at=self._clock.now())
+            updated.append(result)
+            return result
+
+        for sensor in self._repositories.sensors.list_all():
+            self._repositories.sensors.modify(sensor.id, change)
+        return updated
+
     def _next_value(self, sensor: Sensor, config: SystemConfig) -> float | None:
         current = sensor.value
         if current is None or not math.isfinite(current) or sensor.status is not SensorStatus.ACTIVE:
@@ -91,6 +131,10 @@ def main() -> None:
     parser.add_argument('--ciclos', type=int, default=0, help='número de ciclos; 0 = hasta Ctrl+C')
     parser.add_argument('--semilla', type=int, default=None, help='semilla para una simulación repetible')
     parser.add_argument('--movimiento', action='store_true', help='simular también las detecciones de movimiento')
+    parser.add_argument(
+        '--escenario', choices=('calor', 'critica', 'movimiento', 'normal', 'fallo'),
+        help='escribe una vez el escenario y termina; la aplicación evalúa las reglas',
+    )
     args = parser.parse_args()
     if not math.isfinite(args.intervalo) or args.intervalo <= 0 or args.ciclos < 0:
         parser.error('El intervalo debe ser positivo y finito; los ciclos deben ser mayores o iguales que cero.')
@@ -98,6 +142,10 @@ def main() -> None:
     simulator = SensorSimulator(
         Repositories.from_json_dir(args.datos), SystemClock(), random.Random(args.semilla), motion=args.movimiento
     )
+    if args.escenario:
+        readings = simulator.scenario(args.escenario)
+        print(f'Escenario {args.escenario}: {len(readings)} lecturas actualizadas.')
+        return
     cycle = 0
     try:
         while args.ciclos == 0 or cycle < args.ciclos:

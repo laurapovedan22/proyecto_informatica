@@ -62,7 +62,7 @@
             "automatico",
             "manual"
           ],
-          "description": "Quién decidió el estado: las reglas automáticas o un usuario.",
+          "description": "Los controles pasan a manual. El ventilador manual se respeta hasta volver a automático; el movimiento restringido reactiva LED y alarma en automático.",
           "default": "manual"
         },
         "actualizado_en": {

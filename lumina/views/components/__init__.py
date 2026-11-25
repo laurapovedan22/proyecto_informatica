@@ -5,7 +5,7 @@ from .buttons import Button, ButtonVariant, ClickHandler, NavButton
 from .camera import CameraGrid, CameraTile
 from .data import DataTable, ProgressMeter, TableRow
 from .facility import FacilityMetrics, MotionTable, OccupancyPanels, SensorSummary, SensorTable
-from .forms import Field, SelectField, TextField
+from .forms import Field, NumberField, SelectField, TextField
 from .layout import AlertBanner, DefinitionRow, MetricCard, MetricGrid, Note, PageHeader, Panel, Toolbar, TwoColumns
 from .shell import AppShell, AuthShell, Brand
 
@@ -30,6 +30,7 @@ __all__ = [
     'MotionTable',
     'NavButton',
     'Note',
+    'NumberField',
     'OccupancyPanels',
     'PageHeader',
     'Panel',

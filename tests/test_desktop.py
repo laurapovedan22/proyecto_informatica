@@ -48,10 +48,10 @@ def test_browser_mode_and_port_can_be_chosen() -> None:
 @pytest.mark.parametrize(
     ('platform', 'environ', 'expected'),
     [
-        ('darwin', {}, '~/Library/Application Support/Lumina Sprint 2'),
-        ('win32', {'APPDATA': '/perfiles/ana/AppData/Roaming'}, '/perfiles/ana/AppData/Roaming/Lumina Sprint 2'),
-        ('linux', {'XDG_DATA_HOME': '/datos'}, '/datos/lumina-sprint-2'),
-        ('linux', {}, '~/.local/share/lumina-sprint-2'),
+        ('darwin', {}, '~/Library/Application Support/Lumina Sprint 3'),
+        ('win32', {'APPDATA': '/perfiles/ana/AppData/Roaming'}, '/perfiles/ana/AppData/Roaming/Lumina Sprint 3'),
+        ('linux', {'XDG_DATA_HOME': '/datos'}, '/datos/lumina-sprint-3'),
+        ('linux', {}, '~/.local/share/lumina-sprint-3'),
     ],
 )
 def test_user_data_folder_follows_each_system(platform: str, environ: dict[str, str], expected: str) -> None:

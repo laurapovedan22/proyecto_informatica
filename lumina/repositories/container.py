@@ -5,10 +5,12 @@ from __future__ import annotations
 from dataclasses import dataclass
 from pathlib import Path
 
+from .captures import FileCaptureRepository
 from .interfaces import (
     ActuatorRepository,
     AlertRepository,
     CameraRepository,
+    CaptureRepository,
     ConfigRepository,
     ReadingRepository,
     SensorRepository,
@@ -35,6 +37,8 @@ class DataFiles:
     ALERTS = 'alertas.json'
     HISTORY = 'historicos.json'
     CONFIGURATION = 'configuracion.json'
+    CAPTURES = 'capturas'
+    """Carpeta (no un JSON) con las imágenes en las que YOLO ha visto personas."""
 
 
 @dataclass(frozen=True, slots=True)
@@ -48,6 +52,7 @@ class Repositories:
     alerts: AlertRepository
     readings: ReadingRepository
     config: ConfigRepository
+    captures: CaptureRepository
 
     @classmethod
     def from_json_dir(cls, data_dir: Path) -> Repositories:
@@ -63,4 +68,5 @@ class Repositories:
             alerts=JsonAlertRepository(JsonFile(data_dir / DataFiles.ALERTS)),
             readings=JsonReadingRepository(JsonFile(data_dir / DataFiles.HISTORY)),
             config=JsonConfigRepository(JsonFile(data_dir / DataFiles.CONFIGURATION)),
+            captures=FileCaptureRepository(data_dir / DataFiles.CAPTURES),
         )

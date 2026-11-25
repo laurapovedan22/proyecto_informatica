@@ -9,7 +9,9 @@ controladores ni las vistas.
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Callable
+from collections.abc import Callable, Collection
+from datetime import datetime
+from pathlib import Path
 from typing import Generic, Protocol, TypeVar
 
 from ..models import Actuator, Alert, Camera, Reading, Sensor, SystemConfig, User
@@ -113,3 +115,26 @@ class ConfigRepository(ABC):
 
     @abstractmethod
     def save(self, config: SystemConfig) -> None: ...
+
+    @abstractmethod
+    def modify(self, change: Callable[[SystemConfig], SystemConfig]) -> SystemConfig:
+        """Lee estrictamente, modifica y guarda el documento en una única transacción."""
+
+
+class CaptureRepository(ABC):
+    """Imágenes que guarda el análisis de las cámaras con YOLO (las personas recuadradas).
+
+    Los JSON solo guardan una referencia (``capturas/<fichero>.jpg``), relativa a la carpeta de datos.
+    """
+
+    @abstractmethod
+    def save(self, camera_id: str, moment: datetime, image: bytes) -> str:
+        """Guarda una imagen JPEG con un nombre nuevo y devuelve su referencia."""
+
+    @abstractmethod
+    def path(self, reference: str) -> Path | None:
+        """Fichero de una referencia válida, o ``None`` si no es una captura (p. ej. apunta fuera)."""
+
+    @abstractmethod
+    def remove_unused(self, keep: Collection[str], older_than: datetime) -> int:
+        """Borra las capturas que no están en ``keep`` y son anteriores a ``older_than``; devuelve cuántas."""

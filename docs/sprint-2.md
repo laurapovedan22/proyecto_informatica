@@ -9,10 +9,6 @@ de los sensores, aforo y plazas, temperatura y humedad, cámaras y detecciones p
 Se parte de la entrega completa del Sprint 1 y se conservan sus pantallas, protecciones,
 pruebas, documentación y capturas, incluido el bloqueo tras tres contraseñas incorrectas
 seguidas que se añadió al Sprint 1 el 29/10/2026. Solo se implementan las cuatro historias del Sprint 2.
-El 04/11/2026 se incorporaron tres mejoras pedidas en la revisión, descritas en
-[su apartado](#ampliación-del-04112026-superadministrador-cámaras-con-vídeo-y-datos-en-vivo):
-superadministrador (los administradores no se modifican entre sí), cámaras con vídeo real y
-datos en vivo que cambian continuamente.
 
 ## Trazabilidad con el Product Backlog
 
@@ -24,7 +20,7 @@ del supermercado y la segunda cámara supervisa el parking, como en los datos y 
 | --- | --- | ---: | --- | --- | --- |
 | **H2.1 · Valores y estado de sensores · RF-04 / RNF-03 · Imprescindible** | Ignacio Torres | 10 | «Se muestran valores, unidad y estado; si falta una lectura o supera el tiempo de vigencia aparece estado sin datos/desactualizado.» | [controllers/analysis.py](../lumina/controllers/analysis.py) (`sensor_state`, `health`), [controllers/supervision.py](../lumina/controllers/supervision.py), [models/status.py](../lumina/models/status.py) (`SensorHealth`, `SensorState`), [components/facility.py](../lumina/views/components/facility.py) (`SensorTable`, `SensorSummary`), [pages/supervision.py](../lumina/views/pages/supervision.py), [scripts/simular_sensores.py](../scripts/simular_sensores.py). | En [test_facility.py](../tests/test_facility.py): `test_sensor_state_rules`, `test_reading_without_timestamp`, `test_old_readings_are_reported_as_stale`. En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_security_and_admin_see_cameras_zones_and_sensor_values`, `test_supervision_shows_missing_failed_and_stale_readings`. En [test_simulator.py](../tests/test_simulator.py): `test_simulator_writes_readings_that_follow_the_sensor_schema`, `test_simulator_revalidates_the_sensor_inside_modify`, `test_simulator_never_overwrites_an_incomplete_file`. |
 | **H2.2 · Aforo y aparcamiento · RF-05 · Imprescindible** | Víctor Rodríguez | 8 | «Se muestra aforo en personas y aparcamiento en plazas; libres = capacidad − ocupadas; valores acotados entre 0 y capacidad.» | [controllers/analysis.py](../lumina/controllers/analysis.py) (`capacity`), [controllers/facility.py](../lumina/controllers/facility.py), [models/status.py](../lumina/models/status.py) (`CapacityStatus`), [components/facility.py](../lumina/views/components/facility.py) (`FacilityMetrics`, `OccupancyPanels`), [components/data.py](../lumina/views/components/data.py) (`ProgressMeter`), [scripts/simular_sensores.py](../scripts/simular_sensores.py). | En [test_facility.py](../tests/test_facility.py): `test_facility_status_matches_the_mockup`, `test_counter_values_are_bounded`, `test_counters_sum_all_operational_sensors`. En [test_simulator.py](../tests/test_simulator.py): `test_simulator_supports_entries_and_exits`, `test_simulator_bounds_each_counter`. En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_all_dashboards_show_occupancy_climate_units_and_reading_times`. |
-| **H2.3 · Temperatura y humedad · RF-06 · Imprescindible** | Víctor Rodríguez | 6 | «Los indicadores muestran °C y % de la lectura JSON y su hora; la interfaz refleja nuevas lecturas simuladas.» | [controllers/analysis.py](../lumina/controllers/analysis.py) (`climate`), [controllers/facility.py](../lumina/controllers/facility.py), [components/facility.py](../lumina/views/components/facility.py), [pages/dashboard.py](../lumina/views/pages/dashboard.py), [pages/base.py](../lumina/views/pages/base.py) (`LiveData`), [formatting.py](../lumina/views/formatting.py), [scripts/simular_sensores.py](../scripts/simular_sensores.py). | En [test_facility.py](../tests/test_facility.py): `test_facility_status_matches_the_mockup`, `test_climate_averages_main_zone_and_keeps_its_reading_time`. En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_all_dashboards_show_occupancy_climate_units_and_reading_times`, `test_new_json_readings_refresh_the_open_screen`, `test_simulator_updates_dashboard_without_reload`. |
+| **H2.3 · Temperatura y humedad · RF-06 · Imprescindible** | Víctor Rodríguez | 6 | «Los indicadores muestran °C y % de la lectura JSON y su hora; la interfaz refleja nuevas lecturas simuladas.» | [controllers/analysis.py](../lumina/controllers/analysis.py) (`climate`), [controllers/facility.py](../lumina/controllers/facility.py), [components/facility.py](../lumina/views/components/facility.py), [pages/dashboard.py](../lumina/views/pages/dashboard.py), [pages/base.py](../lumina/views/pages/base.py) (`LiveData`, conservado), [formatting.py](../lumina/views/formatting.py), [scripts/simular_sensores.py](../scripts/simular_sensores.py). | En [test_facility.py](../tests/test_facility.py): `test_facility_status_matches_the_mockup`, `test_climate_averages_main_zone_and_keeps_its_reading_time`. En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_all_dashboards_show_occupancy_climate_units_and_reading_times`, `test_new_json_readings_refresh_the_open_screen`, `test_simulator_updates_dashboard_without_reload`. |
 | **H2.4 · Cámaras y detecciones por zona · RF-07 · Importante** | Ignacio Torres | 8 | «Las cámaras de almacén y parking son visibles para Seguridad y Administración; las detecciones muestran zona y estado.» | [controllers/supervision.py](../lumina/controllers/supervision.py), [controllers/analysis.py](../lumina/controllers/analysis.py) (`motion`), [models/status.py](../lumina/models/status.py) (`ZoneMotion`, `CameraFeed`, `SupervisionSnapshot`), [pages/supervision.py](../lumina/views/pages/supervision.py), [components/camera.py](../lumina/views/components/camera.py), [components/facility.py](../lumina/views/components/facility.py) (`MotionTable`), [routes.py](../lumina/views/routes.py). | En [test_facility.py](../tests/test_facility.py): `test_supervision_has_cameras_motion_zones_and_readings`, `test_motion_combines_sensors_and_excludes_errors`, `test_motion_stale_or_missing_never_claims_no_movement`, `test_unconfigured_zones_keep_their_identifier`. En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_security_and_admin_see_cameras_zones_and_sensor_values`, `test_manager_cannot_see_cameras_even_by_direct_route`, `test_camera_url_is_rendered_and_offline_camera_keeps_zone_detection`, `test_open_supervision_revalidates_session_and_permission`. |
 
 `test_sprint_two_queries_do_not_read_future_modules` comprueba que los nuevos controladores
@@ -81,24 +77,16 @@ Cuentas iniciales:
 
 | Perfil | Correo | Contraseña |
 | --- | --- | --- |
-| Superadministrador | `elena.navarro@lumina.es` | `superadmin123` |
 | Administrador | `ana.lopez@lumina.es` | `admin123` |
-| Administrador | `javier.moreno@lumina.es` | `admin123` |
 | Seguridad | `carlos.ruiz@lumina.es` | `seguridad123` |
 | Gerente | `marta.garcia@lumina.es` | `gerente123` |
-
-La aplicación arranca con los **datos en vivo** activados: desde la primera lectura los valores
-y sus horas son los de ese momento. Para enseñar los valores de ejemplo exactos del 14/10/2026
-(pasos 1 y 4), arrancar con `LUMINA_SIMULATION=false` en la línea anterior.
 
 1. **Indicadores del gerente.** Entrar con Marta. Mostrar `86 / 150 personas`, `18 plazas libres`,
    `32 de 50 ocupadas`, `23,6 °C` y `48 %`, con hora `14:30` del 14/10/2026. La fecha inicial
    se conserva del Sprint 1 y se muestra sin aparentar que es una lectura de hoy. Explicar
    las barras de ocupación, «Tu cuenta» y «Funciones de tu perfil». No aparece un enlace
    «Abrir» hacia el propio dashboard.
-2. **Datos simulados y refresco.** Con los datos en vivo activados, basta con esperar: cada
-   refresco cambia temperatura, humedad, aforo, parking, distancia y detecciones, y renueva sus
-   horas. Para usar el simulador externo, en otra terminal, con el entorno del Sprint 2 activado:
+2. **Datos simulados y refresco.** En otra terminal, con el entorno del Sprint 2 activado:
 
    ```bash
    .venv/bin/python scripts/simular_sensores.py --datos /tmp/lumina-sprint2-demo --intervalo 3 --semilla 7 --movimiento
@@ -106,13 +94,10 @@ y sus horas son los de ese momento. Para enseñar los valores de ejemplo exactos
 
    Observar los cambios de temperatura, humedad, aforo y parking sin recargar. Se actualizan
    los instantes de lectura. Detener con Ctrl+C. Se puede añadir `--ciclos 10`; sin
-   `--movimiento`, los sensores de movimiento permanecen intactos. Mientras escribe, la
-   simulación interna deja esos sensores en sus manos y los retoma dos minutos después.
+   `--movimiento`, los sensores de movimiento permanecen intactos.
 3. **Supervisión de seguridad.** Cerrar sesión y esperar a «Iniciar sesión». Entrar con Carlos,
-   mostrar el resumen de sensores y pulsar «Supervisión». Mostrar las dos cámaras con vídeo en
-   directo (tienda y parking, con «EN DIRECTO» y la hora que avanza), sus zonas/detecciones, la
-   lista de zonas y la tabla con valores, unidades y últimas horas. El vídeo necesita conexión a
-   Internet; sin ella cada cámara indica «Sin señal de vídeo» y mantiene su detección.
+   mostrar el resumen de sensores y pulsar «Supervisión». Mostrar las dos cámaras simuladas,
+   sus zonas/detecciones, la lista de zonas y la tabla con valores, unidades y últimas horas.
    Cada sensor de movimiento indica Presencia / Sin presencia. Sin sensor de movimiento en
    parking aparece Sin datos, no una ausencia de movimiento supuesta.
 4. **Estados excepcionales.** Con el simulador detenido, preparar tres lecturas en la copia de
@@ -138,10 +123,7 @@ y sus horas son los de ese momento. Para enseñar los valores de ejemplo exactos
    y su hora cuando existen. Las lecturas no operativas dejan de contribuir a los indicadores.
    La modificación de configuración es preparación de datos, no una pantalla entregada.
 5. **Administración y permisos.** Cerrar sesión, esperar al login y entrar con Ana. Mostrar los
-   contadores de cuentas conservados, los indicadores nuevos y la misma supervisión. En «Usuarios»,
-   las filas de Javier (administrador) y Elena (superadministradora) no tienen controles: «Solo el
-   superadministrador». Entrar con Elena y mostrar que ella sí cambia el perfil de un
-   administrador, lo desactiva o lo desbloquea, y que puede asignar el perfil de administrador. Salir,
+   contadores de cuentas conservados, los indicadores nuevos y la misma supervisión. Salir,
    esperar y volver con Marta. No tiene menú de supervisión y pedir `/supervision` devuelve
    su dashboard; esta petición se verifica automáticamente sin usar un navegador en
    `test_manager_cannot_see_cameras_even_by_direct_route`.
@@ -151,18 +133,8 @@ y sus horas son los de ese momento. Para enseñar los valores de ejemplo exactos
    además la expulsión automática de supervisión al desactivar la cuenta o retirarle el rol,
    incluso sin pulsar botones. Cerrar la ventana al terminar la demostración manual.
 
-Capturas del Sprint 2 (datos de ejemplo del 14/10/2026 14:30, tomadas antes de la ampliación del
-04/11/2026: muestran las cámaras simuladas y las tres cuentas originales):
-
-| Pantalla | Captura |
-| -------- | ------- |
-| Dashboard de administración | ![](capturas/sprint-2/01-dashboard-administracion.png) |
-| Supervisión: cámaras, detecciones por zona y sensores | ![](capturas/sprint-2/02-supervision.png) |
-| Dashboard de seguridad | ![](capturas/sprint-2/03-dashboard-seguridad.png) |
-| Dashboard del gerente | ![](capturas/sprint-2/04-dashboard-gerente.png) |
-| Dashboard del gerente en el móvil | ![](capturas/sprint-2/05-movil-gerente.png) |
-
-Las capturas de la carpeta [capturas/](capturas/) son las del Sprint 1.
+Las [capturas conservadas](capturas/) pertenecen al Sprint 1. Las nuevas del Sprint 2 se harán
+aparte; no se generan capturas ni se abre ventana o navegador durante esta preparación.
 
 ## Definición de hecho
 
@@ -195,29 +167,13 @@ del Sprint 1 exclusivamente para esta verificación):
 ../lumina-sprint1/.venv/bin/ruff check .
 ```
 
-Resultado de la verificación tras la ampliación del 04/11/2026: **296 tests superados**, mypy sin
-errores en **65 ficheros** y ruff sin incidencias (antes de la ampliación: 263 tests y 63 ficheros). Se utiliza Python 3.13 y NiceGUI 3.18. La batería conserva las
+Resultado de la verificación: **263 tests superados**, mypy sin errores en **63 ficheros**
+y ruff sin incidencias. Se utiliza Python 3.13 y NiceGUI 3.18. La batería conserva las
 189 pruebas del Sprint 1 (176 de su auditoría y 13 del bloqueo por intentos fallidos),
 adapta las expectativas de nombre/rutas y añade 49 casos
 funcionales/documentales más la comprobación de reglas de los diez nuevos módulos Python,
 y 15 casos adicionales de las correcciones de auditoría. Se amplía también la prueba de
 retirada de acceso en sus dos variantes (degradación y desactivación de la cuenta).
-
-## Ampliación del 04/11/2026: superadministrador, cámaras con vídeo y datos en vivo
-
-Tres mejoras pedidas en la revisión del sprint, sin cambiar el alcance de los Sprints 3 y 4:
-
-| Mejora | Qué se ha hecho | Dónde | Tests |
-| --- | --- | --- | --- |
-| **Superadministrador** | Nuevo perfil `superadmin` («Superadministrador») con todos los permisos, incluido el nuevo `gestionar_administradores`. Jerarquía: cada cuenta solo gestiona cuentas, y asigna perfiles, de rango inferior. **Los administradores no se pueden modificar entre sí** ni dar de alta o ascender administradores; el superadministrador gestiona sus perfiles y permisos, sus datos, su activación («cerrar la cuenta») y su desbloqueo. Nadie modifica ni asigna el perfil de superadministrador desde la aplicación. Se comprueba en el controlador, con las cuentas vigentes y dentro de la transacción; «Usuarios» solo muestra controles en las filas gestionables y el aviso de cuentas bloqueadas solo cuenta las que quien mira puede desbloquear. | [enums.py](../lumina/models/enums.py) (`Role.can_manage`, `assignable_roles`), [entities.py](../lumina/models/entities.py) (`User.can_manage`), [users.py](../lumina/controllers/users.py), [pages/users.py](../lumina/views/pages/users.py), [pages/dashboard.py](../lumina/views/pages/dashboard.py), [usuarios.json](../data/usuarios.json) | En [test_controllers.py](../tests/test_controllers.py): `test_admins_cannot_modify_other_admins`, `test_nobody_modifies_the_superadmin_from_the_list`, `test_only_the_superadmin_grants_the_admin_role`, `test_the_superadmin_role_is_never_assigned`, `test_the_superadmin_manages_admin_accounts`, `test_the_hierarchy_uses_the_current_accounts`, `test_two_superadmins_cannot_modify_each_other`, `test_counts_only_warn_about_accounts_the_viewer_can_unlock`. En [test_ui.py](../tests/test_ui.py): `test_admins_see_other_admins_without_being_able_to_touch_them`, `test_the_superadmin_manages_admin_accounts_and_permissions`. |
-| **Cámaras funcionales** | Cada cámara reproduce en bucle, sin sonido ni controles, un vídeo real de videovigilancia de Internet: el interior de una tienda para la cámara 1 y un aparcamiento para la cámara 2 (grabaciones de dominio público en Wikimedia Commons). Rótulo «EN DIRECTO», hora sobreimpresa que avanza cada segundo y aviso «Sin señal de vídeo» si no se puede reproducir. Los refrescos solo cambian los rótulos: el vídeo no se reinicia. | [components/camera.py](../lumina/views/components/camera.py), [pages/supervision.py](../lumina/views/pages/supervision.py), [sensores.json](../data/sensores.json) › `camaras[].url` | En [test_supervision_ui.py](../tests/test_supervision_ui.py): `test_cameras_play_a_supermarket_video_from_the_internet`, `test_refreshes_update_camera_captions_without_restarting_the_video`, `test_a_camera_that_loses_its_signal_says_so`, `test_the_camera_clock_ticks_every_second`, `test_a_camera_without_url_keeps_the_simulated_view`. |
-| **Datos en vivo** | `LiveSimulator` genera lecturas verosímiles en cada refresco dentro de la propia aplicación: temperatura y humedad con ciclo diario, aforo y parking según la afluencia de cada hora, coches en el acceso y detecciones esporádicas, todas con su hora actual. Respeta los sensores sin lectura, en error o desactualizados y cede el control a cualquier otra fuente (maqueta IoT o simulador de terminal) durante dos minutos desde su última escritura. Se ejecuta en un hilo mediante `BackgroundCycle`; `LUMINA_SIMULATION=false` la desactiva. | [controllers/simulation.py](../lumina/controllers/simulation.py), [app.py](../lumina/app.py) (`BackgroundCycle`), [settings.py](../lumina/settings.py) | [test_live_simulation.py](../tests/test_live_simulation.py) (11 casos) y, en [test_supervision_ui.py](../tests/test_supervision_ui.py), `test_the_live_simulation_refreshes_the_screens_by_itself`. |
-
-Fuentes de vídeo (dominio público; se pueden sustituir por la URL de cualquier cámara en
-`sensores.json`): [HD CCTV Camera video · retail store](https://commons.wikimedia.org/wiki/File:HD_CCTV_Camera_video_3MP_4MP_iProx_CCTV_HDCCTVCameras.net_retail_store.webm)
-y [BLK-HDPTZ12 Security Camera Parking Lot Surveillance Video](https://commons.wikimedia.org/wiki/File:BLK-HDPTZ12_Security_Camera_Parking_Lot_Surveillance_Video.webm).
-Se usa su versión de 480p en WebM (VP9), compatible con la ventana de escritorio en macOS,
-Windows y Linux.
 
 ## Decisiones de implementación
 
@@ -245,10 +201,9 @@ Windows y Linux.
   a cero indican Sin movimiento. Sin lecturas operativas se informa Error / Desactualizado /
   Sin datos, por ese orden entre los sensores disponibles. Se incluyen todas las zonas,
   también las no restringidas, y se conservan identificadores de zonas desconocidas.
-- **Cámaras.** Se adaptan almacén y parking de la referencia y el mockup. Una URL de vídeo se
-  reproduce en bucle como señal en directo; otra URL activa usa imagen/MJPEG; sin URL la vista se
-  identifica como simulada. Una cámara sin conexión o sin señal no impide mostrar la detección
-  independiente de su zona. No hay alertas ni incidencias revisables.
+- **Cámaras.** Se adaptan almacén y parking de la referencia y el mockup. Una URL activa usa
+  imagen/MJPEG; sin URL la vista se identifica como simulada. Una cámara sin conexión no
+  impide mostrar la detección independiente de su zona. No hay alertas ni incidencias revisables.
 - **Simulación.** Variaciones acotadas: temperatura 18–33 °C y humedad 0–100 %; los contadores
   tienen variaciones enteras positivas/negativas y límites de capacidad. El movimiento es opcional,
   con valores 0/1 admitidos por el esquema. Los sensores con valor nulo o estado explícito de
@@ -281,5 +236,5 @@ Windows y Linux.
 Los datos, esquemas, enumerados y repositorios previos de esos módulos se conservan como
 contratos de H1.1. No se incorporan `AlertWatcher`, controladores de alertas/actuadores,
 registros, umbrales visuales ni lógica automática de la referencia completa.
-Las capturas del Sprint 2 están en docs/capturas/sprint-2; quedan para otra tarea la demostración manual y el empaquetado;
+Quedan para otra tarea las capturas del Sprint 2, la demostración manual y el empaquetado;
 ninguno se ejecuta como parte de esta verificación sin ventanas.

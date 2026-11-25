@@ -21,6 +21,10 @@ from .status import (
     SensorState,
     SupervisionSnapshot,
     UserCounts,
+    VisionState,
+    VisionStatus,
+    ZoneActuator,
+    ZoneAlert,
     ZoneMotion,
 )
 
@@ -49,6 +53,10 @@ __all__ = [
     'SystemConfig',
     'User',
     'UserCounts',
+    'VisionState',
+    'VisionStatus',
     'Zone',
+    'ZoneActuator',
+    'ZoneAlert',
     'ZoneMotion',
 ]

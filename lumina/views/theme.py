@@ -65,6 +65,8 @@ class Theme:
 
     ASSETS_URL = '/assets'
     ICON_URL = f'{ASSETS_URL}/logo-icono.png'
+    CAPTURES_URL = '/capturas'
+    """Imágenes del análisis con YOLO: la carpeta ``capturas/`` de los datos (``DataFiles.CAPTURES``)."""
 
     # Tipografía (los márgenes van aparte para poder omitirlos) ---------------------------------
     H1 = 'text-2xl font-medium leading-tight'
@@ -89,6 +91,7 @@ class Theme:
     USER_BOX = 'mb-2.5 sm:mb-4 leading-snug'
     USER_NAME = 'text-[13px] font-medium'
     ROLE = f'text-xs {Palette.MUTED.text}'
+    BADGE = f'rounded px-2 ml-2 text-xs {Palette.WARN.bg} {Palette.WARN_TEXT.text}'
     NAV = 'flex flex-row flex-wrap gap-1 sm:flex-col sm:flex-nowrap'
     CONTENT = 'flex-1 min-w-0 max-w-full px-3.5 py-5 sm:p-[22px] lg:p-7'
     PAGE_HEADER = 'mb-6'
@@ -127,6 +130,17 @@ class Theme:
     CAMERA_CLOCK = 'absolute bottom-2 right-2 px-2 py-0.5 rounded text-xs font-mono tabular-nums bg-black/65 text-white'
     CAMERA_NO_SIGNAL = 'absolute inset-0 grid content-center justify-items-center gap-1 bg-[#101210] text-white/80'
     CAMERA_CAPTION = 'mt-1.5 text-xs'
+    CAMERA_PRESENCE = (
+        'absolute top-9 left-2 flex items-center gap-1.5 px-2 py-0.5 rounded text-xs bg-black/75 text-[#ffb4a8]'
+    )
+    """Aviso sobre la imagen cuando YOLO ve a alguien en una zona restringida."""
+    CAMERA_PRESENCE_LED = 'inline-block w-2.5 h-2.5 rounded-full bg-[#ff3b30] ring-2 ring-[#ff3b30]/40 animate-pulse'
+    """Piloto rojo encendido, como el LED de aviso."""
+    CAMERA_PRESENCE_FRAME = 'ring-2 ring-[#e5484d]'
+    CAMERA_VISION = 'flex flex-wrap items-center gap-x-2 text-xs'
+    CAPTURE_DIALOG = f'w-full max-w-[560px] rounded p-[18px] shadow-lg {Palette.PAPER.bg} {Palette.TEXT.text}'
+    CAPTURE_IMAGE = 'block w-full h-auto rounded-sm mb-3'
+    ALERT_CAPTURE = f'block mt-2 w-full max-w-[320px] h-auto rounded-sm border {Palette.LINE.border}'
 
     @staticmethod
     def progress_width(ratio: float) -> str:
@@ -144,6 +158,7 @@ class Theme:
     CODE = f'border {Palette.LINE.border} {Palette.SOFT.bg} select-all'
     FORM = 'grid gap-4 w-full max-w-[440px]'
     FIELD = 'grid gap-[5px] w-full'
+    FIELD_CONTROL = 'w-full'
     AUTH_PAGE = f'w-full min-h-screen flex justify-center px-6 pt-10 pb-[54px] {Palette.PAPER.bg}'
     AUTH_INNER = 'w-full max-w-[350px]'
     AUTH_FORM = 'grid gap-4 w-full mt-[26px]'

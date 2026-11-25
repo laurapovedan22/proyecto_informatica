@@ -1,4 +1,4 @@
-"""Variables virtuales inmutables de cuentas y supervisión (Sprints 1 y 2)."""
+"""Variables virtuales inmutables de cuentas, supervisión y análisis de imagen (Sprints 1 a 3)."""
 
 from __future__ import annotations
 
@@ -6,7 +6,8 @@ from dataclasses import dataclass
 from datetime import datetime
 from enum import StrEnum
 
-from .entities import Camera, Sensor, Zone
+from .entities import Actuator, Alert, Camera, Sensor, Zone
+from .enums import SensorStatus
 
 
 class SensorState(StrEnum):
@@ -80,6 +81,27 @@ class CameraFeed:
     zone: Zone
     motion: ZoneMotion
 
+    @property
+    def restricted_presence(self) -> bool:
+        """YOLO ve a alguien en la imagen de una cámara activa de una zona restringida (piloto rojo)."""
+        return self.camera.status is SensorStatus.ACTIVE and bool(self.camera.people) and self.zone.restricted
+
+
+class VisionState(StrEnum):
+    """Situación del análisis de imagen con YOLO."""
+
+    STARTING = 'Preparando'
+    READY = 'Activo'
+    UNAVAILABLE = 'No disponible'
+
+
+@dataclass(frozen=True, slots=True)
+class VisionStatus:
+    """Estado del análisis de imagen: el modelo en uso o, si no se puede analizar, el motivo."""
+
+    state: VisionState = VisionState.STARTING
+    detail: str = ''
+
 
 @dataclass(frozen=True, slots=True)
 class FacilityStatus:
@@ -93,9 +115,27 @@ class FacilityStatus:
 
 
 @dataclass(frozen=True, slots=True)
+class ZoneAlert:
+    """Alerta localizada para los listados y los avisos de seguridad."""
+
+    alert: Alert
+    zone: Zone
+
+
+@dataclass(frozen=True, slots=True)
+class ZoneActuator:
+    """Actuador con su zona, para mostrar el nombre de la zona y no su identificador."""
+
+    actuator: Actuator
+    zone: Zone
+
+
+@dataclass(frozen=True, slots=True)
 class SupervisionSnapshot:
     """Lecturas, cámaras y movimiento para la pantalla de supervisión."""
 
+    alerts: tuple[ZoneAlert, ...]
+    actuators: tuple[ZoneActuator, ...]
     cameras: tuple[CameraFeed, ...]
     zones: tuple[ZoneMotion, ...]
     sensors: tuple[SensorHealth, ...]
