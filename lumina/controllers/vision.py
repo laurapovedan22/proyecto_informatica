@@ -12,6 +12,7 @@ se cargan al usarse) y los tests usan otras de prueba.
 
 from __future__ import annotations
 
+import importlib.util
 import logging
 import threading
 from abc import ABC, abstractmethod
@@ -19,6 +20,7 @@ from collections.abc import Sequence
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from io import BytesIO
+from pathlib import Path
 from typing import TYPE_CHECKING, ClassVar
 
 from ..models import Camera, SensorStatus, SystemConfig, VisionState, VisionStatus, Zone
@@ -89,19 +91,56 @@ class CapturePainter:
     WHITE: ClassVar[tuple[int, int, int]] = (255, 255, 255)
     MAX_WIDTH = 960
     QUALITY = 85
+    FONTS: ClassVar[tuple[str, ...]] = ('DejaVuSans.ttf', 'Arial.ttf', 'arial.ttf', 'LiberationSans-Regular.ttf')
+    """Fuentes del sistema con tildes y eñes (Linux, macOS y Windows) si no está la de matplotlib."""
+    _fonts: ClassVar[dict[int, ImageFont | FreeTypeFont]] = {}
+
+    @classmethod
+    def font(cls, size: int) -> ImageFont | FreeTypeFont:
+        """Fuente de los rótulos, con tildes y eñes.
+
+        La que trae Pillow no las tiene («Almacén» saldría «Almac□n»): se usa DejaVu Sans, que llega con
+        matplotlib al instalar ultralytics, o la primera de :attr:`FONTS` que tenga el sistema. La de
+        Pillow queda como último recurso. Se carga una sola vez por tamaño.
+        """
+        cached = cls._fonts.get(size)
+        if cached is not None:
+            return cached
+        from PIL import ImageFont as Fonts
+
+        chosen: ImageFont | FreeTypeFont | None = None
+        for candidate in cls._font_files():
+            try:
+                chosen = Fonts.truetype(candidate, size)
+                break
+            except OSError:  # no está en este equipo
+                continue
+        if chosen is None:
+            chosen = Fonts.load_default(size=size)
+        cls._fonts[size] = chosen
+        return chosen
+
+    @classmethod
+    def _font_files(cls) -> list[str]:
+        """DejaVu Sans de matplotlib (sin importarlo) y, después, las fuentes del sistema."""
+        files = list(cls.FONTS)
+        matplotlib = importlib.util.find_spec('matplotlib')
+        if matplotlib is not None and matplotlib.origin is not None:
+            files.insert(0, str(Path(matplotlib.origin).parent / 'mpl-data' / 'fonts' / 'ttf' / 'DejaVuSans.ttf'))
+        return files
 
     @classmethod
     def paint(cls, frame: Image, people: Sequence[PersonBox], camera: Camera, zone: Zone, moment: datetime) -> bytes:
         """Imagen JPEG marcada."""
         from PIL import Image as PillowImage
-        from PIL import ImageDraw, ImageFont
+        from PIL import ImageDraw
 
         image = frame.convert('RGB')
         if image.width > cls.MAX_WIDTH:
             height = round(image.height * cls.MAX_WIDTH / image.width)
             image = image.resize((cls.MAX_WIDTH, height), PillowImage.Resampling.LANCZOS)
         draw = ImageDraw.Draw(image)
-        font = ImageFont.load_default(size=max(12, round(image.width / 45)))
+        font = cls.font(max(12, round(image.width / 45)))
         color = cls.ALERT if zone.restricted else cls.CALM
         line = max(2, round(image.width / 300))
         for person in people:

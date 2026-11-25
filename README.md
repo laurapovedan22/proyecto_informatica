@@ -223,9 +223,10 @@ el del Sprint 1 (NiceGUI 3.18, sin YOLO), sin modificarlo:
 ../lumina-sprint1/.venv/bin/python -m pytest -q -p no:cacheprovider
 ```
 
-**Verificación final** tras la ampliación del 18/11/2026: **436 tests superados** con YOLO real
-(388 anteriores, 47 del análisis de imagen y 1 de regresión de NiceGUI 3.19); con el entorno del
-Sprint 1, 432 superados y 4 omitidos porque necesitan YOLO u OpenCV. mypy estricto sin errores en
+**Verificación final** tras la revisión del 25/11/2026: **439 tests superados** con YOLO real
+(388 anteriores, 47 del análisis de imagen, 1 de regresión de NiceGUI 3.19 y 3 de la revisión:
+tildes en las imágenes marcadas y diálogos abiertos al cerrar la página); con el entorno del
+Sprint 1, 435 superados y 4 omitidos porque necesitan YOLO u OpenCV. mypy estricto sin errores en
 79 ficheros; ruff sin incidencias. Los tests desactivan los datos en vivo y el análisis de imagen
 salvo en las pruebas que los comprueban, que usan un detector de prueba.
 

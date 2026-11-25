@@ -13,7 +13,9 @@ real y datos en vivo; se describen en
 [su apartado](#ampliación-del-04112026-superadministrador-cámaras-con-vídeo-y-datos-en-vivo).
 El 18/11/2026 se añadió el análisis de imagen con YOLO: una persona vista en la cámara de una zona
 restringida enciende el LED y la alarma y abre una alerta con la imagen
-([su apartado](#ampliación-del-18112026-análisis-de-imagen-con-yolo)).
+([su apartado](#ampliación-del-18112026-análisis-de-imagen-con-yolo)). En la revisión del 25/11/2026
+se corrigieron las tildes de las imágenes marcadas y un error del registro al cerrar la página con
+un diálogo abierto, y se añadieron las capturas de YOLO.
 
 ## Trazabilidad con el Product Backlog
 
@@ -138,8 +140,10 @@ El modo aleatorio del Sprint 2 sigue funcionando con `--intervalo`, `--semilla`,
 `--movimiento` y `--ciclos`. Los escenarios usan los umbrales vigentes y restablecen
 explícitamente las lecturas necesarias para poder repetir la demostración tras un fallo.
 
-Capturas del Sprint 3 (datos de ejemplo con los escenarios `critica` y `movimiento` del simulador,
-tomadas antes de la ampliación del 04/11/2026: muestran las cámaras simuladas):
+Capturas del Sprint 3. Las cinco primeras (datos de ejemplo con los escenarios `critica` y
+`movimiento` del simulador) se tomaron antes de la ampliación del 04/11/2026 y muestran las cámaras
+simuladas. Las dos de YOLO se tomaron el 25/11/2026 con el análisis en vivo, partiendo del escenario
+`normal`, sin alertas abiertas y con el LED y la alarma apagados:
 
 | Pantalla | Captura |
 | -------- | ------- |
@@ -148,6 +152,8 @@ tomadas antes de la ampliación del 04/11/2026: muestran las cámaras simuladas)
 | Supervisión: alertas, control de equipos, detecciones y sensores | ![](capturas/sprint-3/03-supervision-alertas.png) |
 | Dashboard de seguridad | ![](capturas/sprint-3/04-dashboard-seguridad.png) |
 | Supervisión en el móvil | ![](capturas/sprint-3/05-movil-supervision.png) |
+| YOLO: personas en el almacén (zona restringida), piloto rojo, alerta con la imagen y LED y alarma encendidos en automático | ![](capturas/sprint-3/06-yolo-zona-restringida.png) |
+| YOLO: imagen analizada, con las personas recuadradas | ![](capturas/sprint-3/07-yolo-imagen-analizada.png) |
 
 Las capturas de los sprints anteriores están en [capturas/sprint-2/](capturas/sprint-2/) y en [capturas/](capturas/) (Sprint 1).
 
@@ -178,11 +184,11 @@ Comandos de verificación desde esta carpeta:
 ../lumina-sprint1/.venv/bin/ruff check .
 ```
 
-Resultado final tras la ampliación del 18/11/2026: **436 tests superados**, mypy estricto sin
+Resultado final tras la revisión del 25/11/2026: **439 tests superados**, mypy estricto sin
 errores en **79 ficheros** y ruff sin incidencias, con el entorno propio de la entrega (`.venv`:
 YOLO real, PyTorch, OpenCV y NiceGUI 3.19). Con el entorno del Sprint 1 (NiceGUI 3.18, sin YOLO),
-432 superados y 4 omitidos, los que necesitan YOLO u OpenCV de verdad. Antes de esta ampliación:
-388 tests y 73 ficheros (y antes del 04/11/2026, 353 tests y 71 ficheros: 340 de la entrega y 13
+435 superados y 4 omitidos, los que necesitan YOLO u OpenCV de verdad. La revisión añadió 3 tests
+a los 436 de la ampliación del 18/11/2026. Antes de esa ampliación: 388 tests y 73 ficheros (y antes del 04/11/2026, 353 tests y 71 ficheros: 340 de la entrega y 13
 del bloqueo por intentos fallidos añadido al Sprint 1). La batería conserva las pruebas anteriores,
 adapta las expectativas de nombre y funcionalidades entregadas y cubre controladores,
 interfaz, los nuevos módulos y la ruta protegida.
@@ -195,7 +201,8 @@ interfaz, los nuevos módulos y la ruta protegida.
 
 ### Auditoría y regresiones
 
-Se comparó la entrega con Sprint 2 y se corrigieron cinco hallazgos confirmados:
+Se comparó la entrega con Sprint 2 y se corrigieron cinco hallazgos confirmados; las filas con
+fecha son de revisiones posteriores:
 
 | Gravedad | Escenario y corrección | Prueba de regresión |
 | --- | --- | --- |
@@ -205,6 +212,8 @@ Se comparó la entrega con Sprint 2 y se corrigieron cinco hallazgos confirmados
 | Media | El refresco externo borraba el borrador del administrador. Se conserva mientras haya ediciones pendientes, incluidas las realizadas durante un guardado. | `test_configuration_poll_preserves_unsaved_numbers_and_switches`, `test_configuration_keeps_edits_made_while_save_is_running`. |
 | Media | Un JSON inicial de alertas o configuración dañado impedía construir la página desde el menú. Se permite construirla y el observador reintenta sin notificar como nuevas las alertas anteriores. | `test_shell_recovers_from_initial_malformed_alert_data`. |
 | Media | *Revisión del 18/11/2026.* Con NiceGUI 3.19 (la versión que instala hoy `requirements.txt`), si Supervisión o Configuración se redibujaban mientras «Volver a automático» o «Guardar configuración» trabajaban en su hilo, el aviso final fallaba («The parent element this slot belongs to has been deleted») y no se releían los datos. NiceGUI 3.18 lo ocultaba en los tests. `ProtectedPage.act_async` muestra ahora los avisos y relee los datos (`then=`) en la página, no en el botón pulsado. | `test_async_actions_survive_a_refresh_while_they_run` y, con NiceGUI 3.19, `test_alert_details_review_resolution_and_equipment_controls`. |
+| Media | *Revisión del 25/11/2026.* La fuente que trae Pillow no tiene tildes ni eñes: en las imágenes marcadas por YOLO, también las de las alertas, «Almacén» y «Cámara» salían «Almac□n» y «C□mara». `CapturePainter.font` usa DejaVu Sans (llega con matplotlib al instalar ultralytics) o una fuente del sistema con tildes; la de Pillow queda como último recurso. | `test_the_marked_image_writes_accents_and_enes`. |
+| Baja | *Revisión del 25/11/2026.* Desde NiceGUI 3.16, al cerrar la pestaña con un diálogo abierto (imagen analizada, editar usuario o contraseña temporal) NiceGUI lo borra y termina su espera; el `dialog.delete()` posterior dejaba un `ValueError` en el registro. Ahora solo se borra si sigue existiendo. | `test_closing_the_page_with_the_analyzed_image_open_leaves_no_error`, `test_closing_the_page_with_a_dialog_open_leaves_no_error`. |
 
 También se amplió la cobertura de transacciones reentrantes de configuración entre
 repositorios de la misma ruta, de revisión/resolución simultánea y del enclavamiento de
@@ -253,8 +262,8 @@ una zona en Configuración, la regla se aplica en la evaluación siguiente.
 | **Ciclo de análisis** | Un `BackgroundCycle` del servidor ejecuta `VisionController.step()` cada `LUMINA_REFRESH_SECONDS`, en un hilo. Por cada cámara activa con señal: fotograma, YOLO y resultado guardado en la cámara (`personas`, `analizada_en`, `captura`). Sin imagen no supone a nadie (`personas: null`). Un análisis escrito por otro programa manda durante dos minutos. Si no puede cargar YOLO, lo indica y reintenta al minuto. | [vision.py](../lumina/controllers/vision.py), [app.py](../lumina/app.py) | En [test_vision.py](../tests/test_vision.py): `test_each_cycle_counts_people_and_keeps_the_marked_image`, `test_without_an_image_nobody_is_assumed`, `test_inactive_cameras_or_without_signal_are_not_analyzed`, `test_the_status_says_which_model_is_working_or_why_not`, `test_an_analysis_written_by_another_source_keeps_priority_for_two_minutes`. |
 | **YOLO y fotogramas** | `YoloPersonDetector`: modelo preentrenado `yolo26n.pt` de ultralytics (clase *person*, confianza ≥ 50 %), descargado la primera vez en `descargas/`, sin telemetría ni instalaciones automáticas. `VideoFrameReader`: con OpenCV toma el fotograma de la hora actual, con el vídeo en bucle. Las cámaras de ejemplo pasan a usar copias locales (`assets/camaras/`, servidas en `/assets/camaras/`) de sus vídeos de Wikimedia Commons, porque Wikimedia rechaza las descargas de programas como OpenCV, urllib o httpx (HTTP 429/403); un vídeo de otro servidor se descarga una vez, en segundo plano, con httpx y sus certificados. Solo este módulo importa ultralytics y OpenCV, y al usarse. | [yolo.py](../lumina/controllers/yolo.py) | `test_real_yolo_finds_the_people_of_the_sample_photo`, `test_real_yolo_sees_the_shoppers_of_the_almacen_camera_and_the_rules_react`, `test_opencv_takes_the_frame_of_the_current_moment`, `test_the_frame_reader_uses_the_videos_served_by_the_application`, `test_internet_videos_are_downloaded_once_with_lumina_user_agent`, `test_camera_images_are_fetched_again_each_time_and_errors_mean_no_image`, `test_the_frame_reader_reads_local_images`, `test_without_ultralytics_the_analysis_is_unavailable`, `test_importing_lumina_does_not_load_yolo_or_opencv`. |
 | **Regla** | `RulesController` trata el último análisis como movimiento de la zona de la cámara: en zona restringida, alerta `persona_zona_restringida` (una abierta por cámara) con su `captura`, y LED y alarma encendidos. Se aplica la misma vigencia que a los sensores y se ignoran las cámaras en error. | [rules.py](../lumina/controllers/rules.py), `FacilityAnalyzer.camera_sees_people` | `test_a_person_in_a_restricted_zone_lights_the_led_and_opens_an_alert_with_the_image`, `test_people_outside_restricted_zones_are_only_counted`, `test_restricting_a_zone_applies_to_people_already_seen`, `test_a_camera_alert_is_not_repeated_while_open`, `test_old_or_disconnected_camera_analyses_do_not_count`. |
-| **Imagen marcada** | `CapturePainter` recuadra a cada persona con su confianza y rotula «PERSONA EN ZONA RESTRINGIDA» en rojo (o las personas vistas, en verde), con cámara y hora; JPEG de 960 px como máximo. `FileCaptureRepository` guarda cada imagen con un nombre nuevo en `capturas/` y borra a los dos minutos las que no usan ni las cámaras ni las alertas. | [vision.py](../lumina/controllers/vision.py), [captures.py](../lumina/repositories/captures.py) | `test_the_painter_marks_people_in_red_only_in_restricted_zones`, `test_large_frames_are_reduced_before_saving`, `test_old_unused_captures_are_deleted_but_alert_images_stay`, `test_capture_references_never_leave_their_folder`. |
-| **Pantallas** | En Supervisión, cada cámara indica lo que ve YOLO, enciende el piloto rojo «PERSONA EN ZONA RESTRINGIDA» sobre el vídeo (que no se reinicia) y abre la imagen analizada en un diálogo; bajo las cámaras se explica el estado del análisis. Cada alerta de una cámara muestra su imagen, servida en `/capturas`. Gerencia sigue sin ver cámaras. | [camera.py](../lumina/views/components/camera.py), [incidents.py](../lumina/views/components/incidents.py), [supervision.py](../lumina/views/pages/supervision.py) | En [test_vision_ui.py](../tests/test_vision_ui.py): `test_a_person_in_a_restricted_zone_lights_the_camera_led_and_shows_the_image`, `test_the_alert_shows_the_image_where_the_person_was_seen`, `test_the_live_analysis_turns_on_the_led_and_warns_security`, `test_the_screen_explains_when_yolo_is_not_available`, `test_new_analyses_refresh_the_captions_without_restarting_the_videos`, `test_the_manager_never_sees_cameras_nor_images`. |
+| **Imagen marcada** | `CapturePainter` recuadra a cada persona con su confianza y rotula «PERSONA EN ZONA RESTRINGIDA» en rojo (o las personas vistas, en verde), con cámara y hora; JPEG de 960 px como máximo. Los rótulos usan una fuente con tildes y eñes (DejaVu Sans, que llega con matplotlib al instalar ultralytics, o una del sistema). `FileCaptureRepository` guarda cada imagen con un nombre nuevo en `capturas/` y borra a los dos minutos las que no usan ni las cámaras ni las alertas. | [vision.py](../lumina/controllers/vision.py), [captures.py](../lumina/repositories/captures.py) | `test_the_painter_marks_people_in_red_only_in_restricted_zones`, `test_large_frames_are_reduced_before_saving`, `test_the_marked_image_writes_accents_and_enes`, `test_old_unused_captures_are_deleted_but_alert_images_stay`, `test_capture_references_never_leave_their_folder`. |
+| **Pantallas** | En Supervisión, cada cámara indica lo que ve YOLO, enciende el piloto rojo «PERSONA EN ZONA RESTRINGIDA» sobre el vídeo (que no se reinicia) y abre la imagen analizada en un diálogo; bajo las cámaras se explica el estado del análisis. Cada alerta de una cámara muestra su imagen, servida en `/capturas`. Gerencia sigue sin ver cámaras. | [camera.py](../lumina/views/components/camera.py), [incidents.py](../lumina/views/components/incidents.py), [supervision.py](../lumina/views/pages/supervision.py) | En [test_vision_ui.py](../tests/test_vision_ui.py): `test_a_person_in_a_restricted_zone_lights_the_camera_led_and_shows_the_image`, `test_the_alert_shows_the_image_where_the_person_was_seen`, `test_the_live_analysis_turns_on_the_led_and_warns_security`, `test_the_screen_explains_when_yolo_is_not_available`, `test_new_analyses_refresh_the_captions_without_restarting_the_videos`, `test_the_manager_never_sees_cameras_nor_images`, `test_closing_the_page_with_the_analyzed_image_open_leaves_no_error`. |
 | **Contrato y herramientas** | Campos opcionales nuevos en `sensores.json` › `camaras` y en `alertas.json`, y el tipo `persona_zona_restringida`, documentados en los esquemas. `scripts/analizar_imagen.py` analiza una foto para una cámara. `LUMINA_VISION` y `LUMINA_YOLO_MODEL` en `AppSettings`. El ejecutable no incluye YOLO. | [schemas/](../schemas), [analizar_imagen.py](../scripts/analizar_imagen.py), [settings.py](../lumina/settings.py), [empaquetar.py](../scripts/empaquetar.py) | `test_what_the_analysis_writes_follows_the_schemas`, `test_camera_analysis_and_alert_images_round_trip_through_json`, `test_the_analysis_script_marks_the_photo_and_the_rules_open_the_alert`, `test_the_analysis_script_explains_wrong_arguments`, `test_the_analysis_can_be_configured_with_environment_variables`; casos nuevos en `test_schemas_reject_invalid_data` y en `test_empaquetar.py`. |
 
 Decisiones:
@@ -354,4 +363,4 @@ marca el almacén como no restringido en Configuración, deja de hacerlo.
 
 Los contratos previos de históricos se conservan, sin consultarlos ni escribirlos desde
 las funciones del Sprint 3. No se añaden `ActivityLog`, `registros.json` ni sus pantallas.
-El ejecutable `dist/Lumina Sprint 3.app` se ha construido con `scripts/empaquetar.py` y probado: abre su ventana, inicia sesión y al cerrarla no deja sesiones abiertas. Se regeneró el 31/10/2026 con el bloqueo por intentos fallidos y se repitió la comprobación, añadiendo el bloqueo y el desbloqueo de una cuenta.
+El ejecutable `dist/Lumina Sprint 3.app` se ha construido con `scripts/empaquetar.py` y probado: abre su ventana, inicia sesión y al cerrarla no deja sesiones abiertas. Se regeneró el 31/10/2026 con el bloqueo por intentos fallidos y se repitió la comprobación, añadiendo el bloqueo y el desbloqueo de una cuenta. Es anterior a las ampliaciones del 04/11/2026 y del 18/11/2026: hay que regenerarlo con `scripts/empaquetar.py` para incluirlas (sin YOLO, que el ejecutable no lleva).

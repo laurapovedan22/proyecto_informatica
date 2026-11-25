@@ -141,7 +141,8 @@ class CameraTile(Box):
             with Box(f'{Theme.BUTTON_ROW} justify-end'):
                 Button('Cerrar', on_click=lambda: dialog.submit(None))
         await dialog  # se abre y espera a que se cierre
-        dialog.delete()
+        if not dialog.is_deleted:  # si se cierra la pestaña con el diálogo abierto, NiceGUI ya lo ha borrado
+            dialog.delete()
 
 
 class CameraGrid(Panel):

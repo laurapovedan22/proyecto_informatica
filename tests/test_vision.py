@@ -341,6 +341,14 @@ def test_large_frames_are_reduced_before_saving() -> None:
         assert picture.size == (CapturePainter.MAX_WIDTH, 540)
 
 
+def test_the_marked_image_writes_accents_and_enes() -> None:
+    """Revisión del 25/11/2026: con la fuente que trae Pillow, «Almacén» salía «Almac□n» en las capturas."""
+    font = CapturePainter.font(20)
+    missing = bytes(font.getmask('￿'))  # el recuadro que se dibuja para un carácter que la fuente no tiene
+    for character in 'áéíóúñÁÉÍÓÚÑ':
+        assert bytes(font.getmask(character)) != missing, f'La fuente de las capturas no tiene «{character}»'
+
+
 # --- Contrato JSON ------------------------------------------------------------------------------------
 
 

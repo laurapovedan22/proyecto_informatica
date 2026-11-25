@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 from dataclasses import replace
 from datetime import datetime
 from pathlib import Path
@@ -53,6 +54,20 @@ async def test_a_person_in_a_restricted_zone_lights_the_camera_led_and_shows_the
     assert any(image.props.get('src') == f'/{capture}' for image in user.find(Picture).elements)
     user.find('Cerrar').click()
     await user.should_not_see('Imagen analizada por YOLO')
+
+
+async def test_closing_the_page_with_the_analyzed_image_open_leaves_no_error(
+    user: User, repositories: Repositories, clock: FixedClock, caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Revisión del 25/11/2026: al cerrar la pestaña con la imagen abierta, NiceGUI ya ha borrado el diálogo."""
+    analyze(repositories, clock, {'cam-almacen': 2})
+    await enter(user, 'seguridad')
+    client = await user.open('/supervision')
+    user.find(marker='open-capture-cam-almacen').click()
+    await user.should_see('Imagen analizada por YOLO')
+    client.delete()  # como al cerrar la pestaña: NiceGUI borra la página, también el diálogo abierto
+    await asyncio.sleep(0.1)  # termina la espera del diálogo
+    assert not [record.getMessage() for record in caplog.records if record.levelname == 'ERROR']
 
 
 async def test_nobody_in_sight_keeps_the_led_off(user: User, repositories: Repositories, clock: FixedClock) -> None:

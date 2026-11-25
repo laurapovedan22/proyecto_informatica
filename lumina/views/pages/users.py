@@ -177,7 +177,8 @@ class UsersPage(ProtectedPage):
                     on_click=lambda: self._save_account(dialog, user.id, name, email),
                 ).mark('edit-save')
         await dialog
-        dialog.delete()
+        if not dialog.is_deleted:  # si se cierra la pestaña con el diálogo abierto, NiceGUI ya lo ha borrado
+            dialog.delete()
 
     def _save_account(self, dialog: ui.dialog, user_id: str, name: TextField, email: TextField) -> None:
         saved = self.act(
@@ -235,4 +236,5 @@ class UsersPage(ProtectedPage):
                 Button('Copiar', on_click=lambda: ui.clipboard.write(password))
                 Button('Entendido', variant=ButtonVariant.PRIMARY, on_click=lambda: dialog.submit(True))
         await dialog
-        dialog.delete()
+        if not dialog.is_deleted:  # si se cierra la pestaña con el diálogo abierto, NiceGUI ya lo ha borrado
+            dialog.delete()

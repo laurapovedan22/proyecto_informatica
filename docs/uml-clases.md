@@ -1500,6 +1500,8 @@ classDiagram
     }
     class CapturePainter {
         +int MAX_WIDTH
+        +tuple FONTS
+        +font(size: int) ImageFont
         +paint(frame: Image, people: Sequence, camera: Camera, zone: Zone, moment: datetime) bytes
     }
     class VisionController {
